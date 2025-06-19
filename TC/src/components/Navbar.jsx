@@ -1,33 +1,26 @@
-import React from 'react'
-const Navbar = () => {
+import './Navbar.css';
+
+export default function Navbar() {
   return (
-    <header className="bg-white w-full py-3 px-4 flex items-center justify-between shadow-sm">
-      <div className="flex items-center">
-        <span className="text-purple-600 font-bold text-xl">TripCore</span>
+    <nav className="barra-navegacion">
+      <div className="contenedor-navegacion">
+        <div className="nav-izquierda">
+          <span className="icono-logo">✈️</span>
+          <span className="texto-logo">TripCore</span>
+        </div>
+
+        <ul className="lista-enlaces">
+          <li><a href="#">Planea tu viaje</a></li>
+          <li><a href="#">Explorar destinos</a></li>
+          <li><a href="#">Ofertas</a></li>
+          <li><a href="#">Mis viajes</a></li>
+          <li><a href="#">Ayuda</a></li>
+        </ul>
+
+        <div className="nav-derecha">
+          <button className="boton-sesion">Iniciar Sesión</button>
+        </div>
       </div>
-      <nav className="hidden md:flex items-center space-x-4 text-sm text-gray-600">
-        <a href="#" className="hover:text-purple-600">
-          Planes de viaje
-        </a>
-        <a href="#" className="hover:text-purple-600">
-          Explorar destinos
-        </a>
-        <a href="#" className="hover:text-purple-600">
-          Ofertas
-        </a>
-        <a href="#" className="hover:text-purple-600">
-          Mis viajes
-        </a>
-        <a href="#" className="hover:text-purple-600">
-          Ayuda
-        </a>
-      </nav>
-      <div>
-        <button className="bg-purple-600 text-white px-4 py-1 rounded text-sm">
-          Iniciar sesión
-        </button>
-      </div>
-    </header>
-  )
+    </nav>
+  );
 }
-export default Navbar
