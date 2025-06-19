@@ -1,0 +1,46 @@
+.seccion-destinos {
+  padding: 4rem 2rem;
+  background-color: #ffffff;
+  text-align: center;
+}
+
+.titulo-destinos {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  color: #1f2937;
+}
+
+.grid-destinos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.tarjeta-destino {
+  background-color: #f9f9f9;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.tarjeta-destino:hover {
+  transform: translateY(-5px);
+}
+
+.imagen-destino {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.nombre-destino {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  padding: 1rem;
+  margin: 0;
+}

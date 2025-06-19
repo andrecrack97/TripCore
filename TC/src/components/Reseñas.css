@@ -1,0 +1,62 @@
+.seccion-resenas {
+  padding: 4rem 2rem;
+  background-color: #f9f9f9;
+  text-align: center;
+}
+
+.titulo-resenas {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 2.5rem;
+  color: #1f2937;
+}
+
+.grid-resenas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.tarjeta-resena {
+  background-color: white;
+  border-radius: 0.75rem;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  object-fit: cover;
+}
+
+.tarjeta-resena h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tarjeta-resena p {
+  font-size: 0.95rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.estrellas {
+  color: #ffc107;
+  font-size: 1.1rem;
+}
