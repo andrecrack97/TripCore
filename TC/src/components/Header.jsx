@@ -1,51 +1,23 @@
-// import React from 'react'
-// const Header = () => {
-//   return (
-//     <section
-//       className="relative w-full h-[500px] bg-cover bg-center flex items-center justify-center"
-//       style={{
-//         backgroundImage:
-//           'url("https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.kayak.com.do%2FPunta-Cana-Hoteles-Now-Larimar-Punta-Cana.145636.ksp&psig=AOvVaw1OJQgYIg0XDyN23I3rIX-T&ust=1749900316766000&source=images&cd=vfe&opi=89978449&ved=0CBAQjRxqFwoTCKjuueik7o0DFQAAAAAdAAAAABAL")',
-//       }}
-//     >
-//       <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-//       <div className="relative z-10 text-center px-4">
-//         <h1 className="text-white text-4xl md:text-5xl font-bold mb-8">
-//           Tu viaje comienza con
-//           <br/>
-//           TripCore
-//         </h1>
-//         <div className="flex flex-col sm:flex-row justify-center gap-4">
-//           <button className="bg-purple-600 text-white px-6 py-3 rounded">
-//             Comenzar a planificar
-//           </button>
-//           <button className="bg-white text-gray-800 px-6 py-3 rounded">
-//             Explorar destinos
-//           </button>
-//         </div>
-//       </div>
-//     </section>
-//   )
-// }
-// export default Header
+import React from "react";
+import "./Header.css";
+import background from "../assets/puntacana.jpg";
 
-import './Header.css';
-export default function Header() {
+function Header() {
   return (
-    <section className="header-container">
-      <div className="fondo-principal"></div>
-
-      <div className="contenido-central">
-        <h1 className="header-titulo">
-          Tu viaje comienza con <br />
-          <span>TripCore</span>
-        </h1>
-
-        <div className="botones-header">
-          <button className="boton-principal">Comenzar a planificar</button>
-          <button className="boton-secundario">Explorar destinos</button>
+    <section
+      className="header"
+      style={{ backgroundImage: `url(${background})` }}
+    >
+      <div className="header-content">
+        <h1>Tu viaje comienza con<br />TripCore</h1>
+        <div className="header-buttons">
+          <button className="btn-plan">Comienza a planificar</button>
+          <button className="btn-explore">Explorar destinos</button>
         </div>
       </div>
     </section>
   );
 }
+
+export default Header;
+

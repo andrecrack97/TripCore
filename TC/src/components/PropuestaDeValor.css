@@ -1,55 +1,35 @@
 .propuesta-valor {
-  background-color: #ffffff;
-  padding: 4rem 2rem;
-  text-align: center;
-}
-
-.contenedor-propuesta {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.titulo-propuesta {
-  font-size: 2rem;
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  color: #1f2937;
-}
-
-.texto-propuesta {
-  font-size: 1.1rem;
-  color: #4b5563;
-  margin-bottom: 2.5rem;
-  line-height: 1.6;
-}
-
-.lista-valores {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.lista-valores li {
-  font-size: 1rem;
-  color: #1f2937;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background-color: #f9f9f9;
-  padding: 1rem 1.2rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.3s;
+  justify-content: space-around;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 40px;
+  padding: 60px 40px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
 }
 
-.lista-valores li:hover {
-  background-color: #f0f0f0;
+.valor-item {
+  max-width: 200px;
+  color: #111;
 }
 
-.icono {
-  font-size: 1.4rem;
-  color: #6A00FF;
+.valor-item img {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  filter: brightness(0) saturate(100%) invert(34%) sepia(54%) saturate(498%) hue-rotate(140deg) brightness(92%) contrast(96%);
+  /* Esto simula #0099a2 para íconos grises */
+}
+
+.valor-item h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.valor-item p {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
 }

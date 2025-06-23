@@ -1,59 +1,45 @@
 .footer {
-  background-color: #1f2937;
-  color: #ffffff;
-  padding: 3rem 2rem 1rem;
-  font-family: 'Inter', sans-serif;
+  background-color: #a855f7;
+  color: white;
+  padding: 40px 20px;
 }
-
 .footer-contenido {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
-  max-width: 1100px;
-  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
-
-.footer-logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: #6A00FF;
+.footer-columna {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 20px;
 }
-
-.footer-descripcion {
-  font-size: 0.95rem;
-  color: #d1d5db;
-}
-
 .footer-columna h4 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.8rem;
+  font-size: 14px;
+  margin-bottom: 10px;
 }
-
 .footer-columna ul {
   list-style: none;
   padding: 0;
-  margin: 0;
 }
-
-.footer-columna li {
-  margin-bottom: 0.5rem;
-}
-
 .footer-columna a {
-  color: #d1d5db;
+  color: #f3e8ff;
   text-decoration: none;
-  transition: color 0.3s;
+  font-size: 13px;
 }
-
 .footer-columna a:hover {
-  color: #ffffff;
+  text-decoration: underline;
 }
-
+.footer-logo {
+  font-size: 16px;
+  font-weight: bold;
+}
+.footer-descripcion {
+  font-size: 13px;
+  color: #e9d5ff;
+}
 .footer-final {
+  border-top: 1px solid #d9bfff;
   text-align: center;
-  margin-top: 2rem;
-  font-size: 0.9rem;
-  color: #9ca3af;
+  padding-top: 12px;
+  font-size: 12px;
 }

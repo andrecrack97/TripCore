@@ -1,26 +1,23 @@
-import './Navbar.css';
+import React from "react";
+import "./Navbar.css";
 
-export default function Navbar() {
+
+function Navbar() {
   return (
-    <nav className="barra-navegacion">
-      <div className="contenedor-navegacion">
-        <div className="nav-izquierda">
-          <span className="icono-logo">✈️</span>
-          <span className="texto-logo">TripCore</span>
-        </div>
-
-        <ul className="lista-enlaces">
-          <li><a href="#">Planea tu viaje</a></li>
-          <li><a href="#">Explorar destinos</a></li>
-          <li><a href="#">Ofertas</a></li>
-          <li><a href="#">Mis viajes</a></li>
-          <li><a href="#">Ayuda</a></li>
-        </ul>
-
-        <div className="nav-derecha">
-          <button className="boton-sesion">Iniciar Sesión</button>
-        </div>
+    <header className="navbar">
+      <div className="navbar-logo">TripCore</div>
+      <nav className="navbar-links">
+        <a href="#inicio">Planea tu viaje</a>
+        <a href="#funcionalidades">Explorar destinos</a>
+        <a href="#explorar">Ofertas</a>
+        <a href="#explorar">Mis viajes</a>
+        <a href="#ayuda">Ayuda</a>
+      </nav>
+      <div className="navbar-right">
+        <button className="btn-login">Iniciar sesión</button>
       </div>
-    </nav>
+    </header>
   );
 }
+
+export default Navbar;
