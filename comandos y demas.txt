@@ -1,0 +1,5 @@
+PARA EJECUTAR LA API:
+npm install
+npm start
+http://localhost:3005/api/viajes
+
