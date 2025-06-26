@@ -10,7 +10,7 @@ app.use("/api/viajes", viajesRoutes);
 
 app.get("/", (req, res) => {
   console.log("✅ Alguien visitó /");
-  res.send("Bienvenido a la API TripCore");
+  res.send("API TripCore de prueba");
 });
 
 const PORT = 3005;
