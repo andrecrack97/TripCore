@@ -1,13 +1,17 @@
 .seccion-resenas {
   padding: 2rem;
   background-color: #fff;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .titulo-resenas {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
+  text-align: left; 
 }
+
 
 .grid-resenas {
   display: flex;
@@ -15,7 +19,9 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding-bottom: 1rem;
+  justify-content: center; 
 }
+
 
 .tarjeta-resena {
   flex: 0 0 auto;
