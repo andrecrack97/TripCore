@@ -1,37 +1,70 @@
 .seccion-resenas {
-  padding: 40px;
+  padding: 2rem;
+  background-color: #fff;
 }
+
 .titulo-resenas {
-  font-size: 18px;
-  margin-bottom: 20px;
-  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
+
 .grid-resenas {
   display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
+  gap: 2rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 1rem;
 }
+
 .tarjeta-resena {
-  width: 220px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 1px 1px 6px rgba(0,0,0,0.05);
+  flex: 0 0 auto;
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 1.2rem;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
+
 .usuario {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 0.8rem;
+  margin-bottom: 0.6rem;
 }
+
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  object-fit: cover;
 }
+
+.tarjeta-resena h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.tarjeta-resena p {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 1rem 0;
+  line-height: 1.4;
+  color: #333;
+}
+
 .estrellas {
-  margin-top: 10px;
-  color: #facc15;
+  color: #ffc107;
+  display: flex;
+  gap: 4px;
 }
+
+.estrella-icono {
+  width: 16px;
+  height: 16px;
+}
+

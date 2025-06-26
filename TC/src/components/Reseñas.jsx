@@ -77,7 +77,14 @@ export default function Reseñas() {
           <p>
             "TripCore me ayudó a organizar el viaje de mis sueños a Japón. Todo fue simple, rápido y seguro. ¡Lo súper recomiendo!"
           </p>
-          <div className="estrellas">⭐⭐⭐⭐⭐</div>
+          <div className="estrellas">
+  {[...Array(5)].map((_, i) => (
+    <svg key={i} className="estrella-icono" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M10 15l-5.878 3.09 1.122-6.545L.488 6.91l6.561-.955L10 0l2.951 5.955 6.561.955-4.756 4.635 1.122 6.545z" />
+    </svg>
+  ))}
+</div>
+
         </div>
 
         <div className="tarjeta-resena">

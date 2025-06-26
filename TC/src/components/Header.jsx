@@ -1,13 +1,12 @@
 import React from "react";
 import "./Header.css";
-import background from "../assets/puntacana.jpg";
-
 function Header() {
   return (
     <section
-      className="header"
-      style={{ backgroundImage: `url(${background})` }}
-    >
+     className="header"
+      style={{ backgroundImage: "url('/assets/puntacana.jpg')" }}
+      >
+
       <div className="header-content">
         <h1>Tu viaje comienza con<br />TripCore</h1>
         <div className="header-buttons">

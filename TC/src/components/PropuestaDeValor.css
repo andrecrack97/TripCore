@@ -15,12 +15,11 @@
 }
 
 .valor-item img {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 16px;
-  filter: brightness(0) saturate(100%) invert(34%) sepia(54%) saturate(498%) hue-rotate(140deg) brightness(92%) contrast(96%);
-  /* Esto simula #0099a2 para íconos grises */
+  width: 100px;
+  height: 100px;
+  margin-bottom: 0.75rem;
 }
+
 
 .valor-item h4 {
   font-size: 16px;
