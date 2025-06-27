@@ -1,5 +1,5 @@
 import './Footer.css';
-import { FaInstagram } from "react-icons/fa";
+
 
 export default function Footer() {
   return (
@@ -29,7 +29,7 @@ export default function Footer() {
         <div className="footer-col">
           <h4>Nuestras redes</h4>
           <div className="footer-redes">
-            <a href="#"><FaInstagram/></a>
+            <a href="#"><instagram/></a>
             <a href="#"><twitter /></a>
             <a href="#"><facebook /></a>
           </div>

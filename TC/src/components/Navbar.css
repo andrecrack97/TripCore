@@ -17,12 +17,16 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.navbar-logo {
-  font-size: 24px;
-  font-weight: 600;
-  color: #000;
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.navbar-logo {
+  height: 60px;
+  width: auto;
+}
 .navbar-links {
   display: flex;
   gap: 30px;

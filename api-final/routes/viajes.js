@@ -5,8 +5,6 @@ const db = require("../db");
 router.get("/", async (req, res) => {
   console.log("🟡 Entró a /api/viajes");
 
-
-  //para debugearr
   try {
     const result = await db.request().query("SELECT * FROM Viajes");
     console.log("🟢 Consulta exitosa");

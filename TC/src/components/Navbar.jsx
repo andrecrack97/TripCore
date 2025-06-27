@@ -5,7 +5,9 @@ import "./Navbar.css";
 function Navbar() {
   return (
     <header className="navbar">
-      <div className="navbar-logo">TripCore</div>
+      <div className="navbar-left">
+        <img src="/assets/Logo.png" alt="TripCore" className="navbar-logo" />
+      </div>
       <nav className="navbar-links">
         <a href="#inicio">Planea tu viaje</a>
         <a href="#funcionalidades">Explorar destinos</a>
