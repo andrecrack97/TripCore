@@ -26,7 +26,7 @@ export function App() {
               </>
             }
           />
-          <Route path="/login" element={<Login />} /> {/* ✅ CORREGIDO */}
+          <Route path="/login" element={<Login />} />
         </Routes>
       </main>
       <Footer />

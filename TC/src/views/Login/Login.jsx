@@ -1,31 +1,22 @@
 import React from "react";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
 import "./Login.css";
 
 export default function Login() {
   return (
-    <>
-      <Navbar />
-      <div className="login-page">
-        <div className="login-box">
-          <div className="login-form">
-            <h1>¡Bienvenido de vuelta,<br />viajero!</h1>
-            <input type="email" placeholder="Correo electrónico" />
-            <input type="password" placeholder="Contraseña" />
-            <a href="#" className="link">¿Olvidaste tu contraseña?</a>
-            <a href="#" className="link">¿No tienes una cuenta? Registrate.</a>
-            <button>Iniciar sesión</button>
-          </div>
-          <div className="login-image">
-            <img src="/assets/ilustracion-login.png" alt="Viaje" />
-          </div>
+    <div className="login-page">
+      <div className="login-box">
+        <div className="login-form">
+          <h1>¡Bienvenido de vuelta,<br />viajero!</h1>
+          <input type="email" placeholder="Correo electrónico" />
+          <input type="password" placeholder="Contraseña" />
+          <a href="#" className="link">¿Olvidaste tu contraseña?</a>
+          <a href="#" className="link">¿No tienes una cuenta? Registrate.</a>
+          <button>Iniciar sesión</button>
+        </div>
+        <div className="login-image">
+          <img src="/assets/ilustracion-login.png" alt="Viaje" />
         </div>
       </div>
-      <Footer />
-    </>
+    </div>
   );
 }
-
-
-  

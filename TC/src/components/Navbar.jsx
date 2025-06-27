@@ -6,7 +6,8 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <img src="/assets/Logo.png" alt="TripCore" className="navbar-logo" />
+        <a href="/"><img src="/assets/Logo.png" alt="TripCore" className="navbar-logo"/></a>
+        
       </div>
       <nav className="navbar-links">
         <a href="#inicio">Planea tu viaje</a>
@@ -16,7 +17,7 @@ function Navbar() {
         <a href="#ayuda">Ayuda</a>
       </nav>
       <div className="navbar-right">
-       <a href="/views/Login" className="btn-login">Iniciar sesión</a>
+       <a href="/Login" className="btn-login">Iniciar sesión</a>
 
         
       </div>
