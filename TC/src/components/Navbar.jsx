@@ -16,7 +16,9 @@ function Navbar() {
         <a href="#ayuda">Ayuda</a>
       </nav>
       <div className="navbar-right">
-        <button className="btn-login">Iniciar sesión</button>
+       <a href="/views/Login" className="btn-login">Iniciar sesión</a>
+
+        
       </div>
     </header>
   );
