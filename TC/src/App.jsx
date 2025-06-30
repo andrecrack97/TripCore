@@ -6,7 +6,8 @@ import Header from './components/Header';
 import PropuestaDeValor from './components/PropuestaDeValor';
 import Destinos from './components/Destinos';
 import Reseñas from './components/Reseñas';
-import Login from './views/Login/Login'; 
+import Login from './views/Login/Login';
+import Registro from './views/Registro/Registro';
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
             }
           />
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro/>} />
         </Routes>
       </main>
       <Footer />

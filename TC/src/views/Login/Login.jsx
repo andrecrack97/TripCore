@@ -8,13 +8,13 @@ export default function Login() {
         <div className="login-form">
           <h1>¡Bienvenido de vuelta,<br />viajero!</h1>
           <input type="email" placeholder="Correo electrónico" />
-          <input type="password" placeholder="Contraseña" />
+          <input type="password" placeholder="Contraseña" required/>
           <a href="#" className="link">¿Olvidaste tu contraseña?</a>
-          <a href="#" className="link">¿No tienes una cuenta? Registrate.</a>
+          <a href="/Registro" className="link">¿No tienes una cuenta? Registrate.</a>
           <button>Iniciar sesión</button>
         </div>
         <div className="login-image">
-          <img src="/assets/ilustracion-login.png" alt="Viaje" />
+        <img src="/assets/iniciosesion.png" alt="Viaje" />
         </div>
       </div>
     </div>
