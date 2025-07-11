@@ -6,7 +6,7 @@ router.get("/", async (req, res) => {
   console.log("🟡 Entró a /api/viajes");
 
   try {
-    const result = await db.request().query("SELECT * FROM Viajes");
+    const result = await db.request().query("SELECT * FROM Usuarios");
     console.log("🟢 Consulta exitosa");
     res.json(result.recordset);
   } catch (err) {
