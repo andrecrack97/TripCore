@@ -7,20 +7,25 @@
 }
 
 .navbar {
-  font-family: 'Inter', sans-serif;
-  width: 100%;
-  padding: 20px 40px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;  /* distribuye los extremos */
+  padding: 1rem 2rem;
   background-color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  font-family: 'Poppins', sans-serif;
+  position: relative;
+  z-index: 1000;
 }
-
 .navbar-left {
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+}
+.navbar-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .navbar-logo {
@@ -28,8 +33,10 @@
   width: auto;
 }
 .navbar-links {
+  flex: 2;
   display: flex;
-  gap: 30px;
+  justify-content: center;
+  gap: 2rem;
 }
 
 .navbar-links a {

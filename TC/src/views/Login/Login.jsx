@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../../services/login";  // Importamos el servicio
+import { loginUser } from "../../services/login";
 import "./Login.css";
 
 export default function Login() {
@@ -10,45 +10,67 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    if (!email.trim() || !contraseña.trim()) {
+      setError("Completa todos los campos");
+      return;
+    }
+  
     try {
-      // Llamamos al servicio de login
       const response = await loginUser(email, contraseña);
-
+  
       if (response.success) {
-        // Si el login es exitoso, redirigimos al usuario a la página principal
-        navigate("/");  // Redirigir a la página de inicio
+        localStorage.setItem("usuario", email); // ✅ Guarda el usuario logueado
+        setError("");
+        navigate("/");
       } else {
-        // Si no es exitoso, mostramos el mensaje de error
-        setError(response.message);  // Mostrar el error recibido
+        setError(response.message);
       }
     } catch (err) {
       console.error("Error al conectar al backend:", err);
       setError("No se pudo conectar al servidor.");
     }
   };
+  
 
   return (
     <div className="login-page">
       <div className="login-box">
-        <div className="login-form">
+        <form
+          className="login-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+        >
           <h1>¡Bienvenido de vuelta,<br />viajero!</h1>
+
           <input
             type="email"
             placeholder="Correo electrónico"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError(""); // Limpia el error al escribir
+            }}
           />
           <input
             type="password"
             placeholder="Contraseña"
             value={contraseña}
-            onChange={(e) => setContraseña(e.target.value)}
+            onChange={(e) => {
+              setContraseña(e.target.value);
+              setError(""); // Limpia el error al escribir
+            }}
           />
-          {error && <p style={{ color: "red" }}>{error}</p>} {/* Mostrar errores si los hay */}
+
+          {error && <p style={{ color: "red" }}>{error}</p>}
+
           <a href="#" className="link">¿Olvidaste tu contraseña?</a>
           <a href="/Registro" className="link">¿No tienes una cuenta? Registrate.</a>
-          <button onClick={handleLogin}>Iniciar sesión</button>
-        </div>
+
+          <button type="submit">Iniciar sesión</button>
+        </form>
+
         <div className="login-image">
           <img src="/assets/iniciosesion.png" alt="Viaje" />
         </div>

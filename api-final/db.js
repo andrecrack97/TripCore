@@ -13,9 +13,8 @@ const config = {
   }
 };
 
-const pool = new sql.ConnectionPool(config);
-pool.connect()
+sql.connect(config)
   .then(() => console.log("✅ Conectado a SQL Server"))
   .catch(err => console.error("❌ Error de conexión:", err));
 
-module.exports = pool;
+module.exports = sql;

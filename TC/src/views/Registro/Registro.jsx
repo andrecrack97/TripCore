@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import './Registro.css';
+import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
 export default function Registro() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -10,33 +15,58 @@ export default function Registro() {
     pais: ''
   });
 
+  const [error, setError] = useState("");
+  const [exito, setExito] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [verPass, setVerPass] = useState(false);
+  const [verConfirmar, setVerConfirmar] = useState(false);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
+    setExito("");
   };
 
   const handleSubmit = async () => {
-    if (formData.contraseña !== formData.confirmar) {
-      alert("Las contraseñas no coinciden");
+    if (loading) return;
+
+    const { nombre, email, contraseña, confirmar, pais } = formData;
+
+    if (!nombre || !email || !contraseña || !confirmar || !pais) {
+      setError("Completá todos los campos");
+      setExito("");
+      return;
+    }
+
+    if (contraseña !== confirmar) {
+      setError("Las contraseñas no coinciden");
+      setExito("");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/usuarios/registro", {
+      setLoading(true);
+      const res = await fetch("http://localhost:3005/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ nombre, email, contraseña })
       });
 
       const data = await res.json();
       if (res.ok) {
-        alert("Registro exitoso");
-        window.location.href = "/Login";
+        setError("");
+        setExito("Registro exitoso. Redirigiendo...");
+        setTimeout(() => navigate("/"), 2000);
       } else {
-        alert(data.mensaje);
+        setExito("");
+        setError(data.message || "Error al registrar");
       }
     } catch (err) {
       console.error(err);
-      alert("Error al registrarse");
+      setExito("");
+      setError("Error al conectarse al servidor");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,14 +75,49 @@ export default function Registro() {
       <div className="registro-box">
         <div className="registro-form">
           <h1>¡Registrate viajero!</h1>
+
+          {error && <p style={{ color: "red" }}>{error}</p>}
+          {exito && <p style={{ color: "green" }}>{exito}</p>}
+
           <input type="text" name="nombre" placeholder="Nombre completo" onChange={handleChange} />
           <input type="email" name="email" placeholder="Correo electrónico" onChange={handleChange} />
-          <input type="password" name="contraseña" placeholder="Contraseña" onChange={handleChange} />
-          <input type="password" name="confirmar" placeholder="Confirmar contraseña" onChange={handleChange} />
+
+          <div className="input-con-icono">
+            <input
+              type={verPass ? "text" : "password"}
+              name="contraseña"
+              placeholder="Contraseña"
+              onChange={handleChange}
+            />
+            <FontAwesomeIcon
+              icon={verPass ? faEyeSlash : faEye}
+              onClick={() => setVerPass(!verPass)}
+              className="icono-ojo"
+            />
+          </div>
+
+          <div className="input-con-icono">
+            <input
+              type={verConfirmar ? "text" : "password"}
+              name="confirmar"
+              placeholder="Confirmar contraseña"
+              onChange={handleChange}
+            />
+            <FontAwesomeIcon
+              icon={verConfirmar ? faEyeSlash : faEye}
+              onClick={() => setVerConfirmar(!verConfirmar)}
+              className="icono-ojo"
+            />
+          </div>
+
           <input type="text" name="pais" placeholder="País de origen" onChange={handleChange} />
+
           <a href="/Login" className="link">¿Ya tienes una cuenta? Inicia sesión.</a>
-          <button onClick={handleSubmit}>Registrarse</button>
+          <button onClick={handleSubmit} disabled={loading}>
+            {loading ? "Registrando..." : "Registrarse"}
+          </button>
         </div>
+
         <div className="registro-image">
           <img src="/assets/registrarse.png" alt="Viaje" />
         </div>
