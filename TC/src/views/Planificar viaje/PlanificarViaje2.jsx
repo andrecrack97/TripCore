@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
-import "./PlanificarViaje.css";
+import "./PlanificarViaje2.css"; // ahora este es el CSS aislado
 import { useNavigate } from "react-router-dom";
 
 export default function PlanificarViaje2() {
   const navigate = useNavigate();
-  const hoy = new Date().toISOString().split("T")[0];
+
+  const hoy = new Date();
+  const isoHoy = new Date(
+    hoy.getFullYear(),
+    hoy.getMonth(),
+    hoy.getDate()
+  ).toISOString().split("T")[0];
 
   const [salida, setSalida] = useState("");
   const [vuelta, setVuelta] = useState("");
@@ -34,10 +40,18 @@ export default function PlanificarViaje2() {
 
   const guardarEnLocalStorage = () => {
     const previo = JSON.parse(localStorage.getItem("planificarViaje")) || {};
-    localStorage.setItem(
-      "planificarViaje",
-      JSON.stringify({ ...previo, fecha_salida: salida, fecha_vuelta: vuelta })
-    );
+    const data = {
+      ...previo,
+      fecha_salida: salida,
+      fecha_vuelta: vuelta,
+    };
+    localStorage.setItem("planificarViaje", JSON.stringify(data));
+  };
+
+  const handleGuardar = () => {
+    if (!validar()) return;
+    guardarEnLocalStorage();
+    setExito("✅ Fechas guardadas");
   };
 
   const handleSiguiente = (e) => {
@@ -47,15 +61,9 @@ export default function PlanificarViaje2() {
     navigate("/planificar/3");
   };
 
-  const handleGuardar = () => {
-    if (!validar()) return;
-    guardarEnLocalStorage();
-    setExito("✅ Fechas guardadas");
-  };
-
   return (
-    <div className="planificador-container">
-      <div className="planificador-box">
+    <div className="planificar2-container">
+      <div className="planificar2-box">
         <p className="breadcrumb">
           Planificador de Viajes &nbsp; ❯ &nbsp; <span>2: Elegir fechas</span>
         </p>
@@ -64,21 +72,29 @@ export default function PlanificarViaje2() {
         <h1>Elegí las fechas de tu viaje</h1>
 
         <form onSubmit={handleSiguiente}>
+          <label>Elegir fecha</label>
+
           <div className="date-grid">
-            <div>
-              <label>Fecha de salida</label>
+            <div className="date-field">
+              <span>Fecha de salida</span>
               <input
                 type="date"
-                min={hoy}
+                min={isoHoy}
                 value={salida}
-                onChange={(e) => setSalida(e.target.value)}
+                onChange={(e) => {
+                  setSalida(e.target.value);
+                  if (vuelta && e.target.value && new Date(vuelta) < new Date(e.target.value)) {
+                    setVuelta(e.target.value);
+                  }
+                }}
               />
             </div>
-            <div>
-              <label>Fecha de vuelta</label>
+
+            <div className="date-field">
+              <span>Fecha de vuelta</span>
               <input
                 type="date"
-                min={salida || hoy}
+                min={salida || isoHoy}
                 value={vuelta}
                 onChange={(e) => setVuelta(e.target.value)}
               />
@@ -89,15 +105,27 @@ export default function PlanificarViaje2() {
           {exito && <p className="exito">{exito}</p>}
 
           <div className="acciones">
-            <button type="button" className="btn-anterior" onClick={() => navigate(-1)}>
-              ◀ Anterior
+            <button
+              type="button"
+              className="btn-anterior"
+              onClick={() => navigate(-1)}
+            >
+              ◀&nbsp; Anterior
             </button>
-            <button type="button" className="btn-guardar" onClick={handleGuardar}>
-              Guardar
-            </button>
-            <button type="submit" className="btn-siguiente">
-              Siguiente ➤
-            </button>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                className="btn-guardar"
+                onClick={handleGuardar}
+              >
+                Guardar
+              </button>
+
+              <button type="submit" className="btn-siguiente">
+                Siguiente &nbsp; ➤
+              </button>
+            </div>
           </div>
         </form>
       </div>
