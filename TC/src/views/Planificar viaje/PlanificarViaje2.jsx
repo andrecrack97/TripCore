@@ -1,0 +1,106 @@
+import React, { useEffect, useState } from "react";
+import "./PlanificarViaje.css";
+import { useNavigate } from "react-router-dom";
+
+export default function PlanificarViaje2() {
+  const navigate = useNavigate();
+  const hoy = new Date().toISOString().split("T")[0];
+
+  const [salida, setSalida] = useState("");
+  const [vuelta, setVuelta] = useState("");
+  const [error, setError] = useState("");
+  const [exito, setExito] = useState("");
+
+  useEffect(() => {
+    const guardado = JSON.parse(localStorage.getItem("planificarViaje")) || {};
+    if (guardado.fecha_salida) setSalida(guardado.fecha_salida);
+    if (guardado.fecha_vuelta) setVuelta(guardado.fecha_vuelta);
+  }, []);
+
+  const validar = () => {
+    if (!salida || !vuelta) {
+      setError("Por favor completá ambas fechas.");
+      setExito("");
+      return false;
+    }
+    if (new Date(vuelta) < new Date(salida)) {
+      setError("La fecha de vuelta no puede ser anterior a la de salida.");
+      setExito("");
+      return false;
+    }
+    setError("");
+    return true;
+  };
+
+  const guardarEnLocalStorage = () => {
+    const previo = JSON.parse(localStorage.getItem("planificarViaje")) || {};
+    localStorage.setItem(
+      "planificarViaje",
+      JSON.stringify({ ...previo, fecha_salida: salida, fecha_vuelta: vuelta })
+    );
+  };
+
+  const handleSiguiente = (e) => {
+    e.preventDefault();
+    if (!validar()) return;
+    guardarEnLocalStorage();
+    navigate("/planificar/3");
+  };
+
+  const handleGuardar = () => {
+    if (!validar()) return;
+    guardarEnLocalStorage();
+    setExito("✅ Fechas guardadas");
+  };
+
+  return (
+    <div className="planificador-container">
+      <div className="planificador-box">
+        <p className="breadcrumb">
+          Planificador de Viajes &nbsp; ❯ &nbsp; <span>2: Elegir fechas</span>
+        </p>
+
+        <h2>Paso 2</h2>
+        <h1>Elegí las fechas de tu viaje</h1>
+
+        <form onSubmit={handleSiguiente}>
+          <div className="date-grid">
+            <div>
+              <label>Fecha de salida</label>
+              <input
+                type="date"
+                min={hoy}
+                value={salida}
+                onChange={(e) => setSalida(e.target.value)}
+              />
+            </div>
+            <div>
+              <label>Fecha de vuelta</label>
+              <input
+                type="date"
+                min={salida || hoy}
+                value={vuelta}
+                onChange={(e) => setVuelta(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && <p className="error">{error}</p>}
+          {exito && <p className="exito">{exito}</p>}
+
+          <div className="acciones">
+            <button type="button" className="btn-anterior" onClick={() => navigate(-1)}>
+              ◀ Anterior
+            </button>
+            <button type="button" className="btn-guardar" onClick={handleGuardar}>
+              Guardar
+            </button>
+            <button type="submit" className="btn-siguiente">
+              Siguiente ➤
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

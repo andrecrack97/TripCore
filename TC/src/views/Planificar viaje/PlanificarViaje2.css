@@ -1,0 +1,150 @@
+/* ===== Paso 2: Elegir fechas ===== */
+:root{
+    --primary:#6A00FF;
+    --primary-15: rgba(106,0,255,.15);
+    --ink:#1b1233;
+    --muted:#6a5f87;
+    --bg-soft:#faf7ff;
+    --stroke:#e8e2ff;
+  }
+  
+  /* Contenedor general ya existe, por si faltaba */
+  .planificador-container{
+    min-height: calc(100vh - 120px);
+    display:flex; align-items:center; justify-content:center;
+    padding: 24px;
+    background: linear-gradient(135deg,#BFA2FF 0%, #9DD0FF 100%);
+  }
+  .planificador-box{
+    width: min(980px, 100%);
+    background:#fff;
+    border-radius:16px;
+    padding:28px;
+    box-shadow: 0 20px 45px rgba(0,0,0,.08);
+  }
+  
+  .breadcrumb{ color:#7a6ea6; font-size:14px; margin-bottom:8px; }
+  .breadcrumb span{ color:var(--primary); font-weight:600; }
+  
+  h2{ margin:0; color:#7d71a3; font-weight:700; }
+  h1{ margin:4px 0 18px; color:var(--ink); font-size:28px; }
+  
+  /* Grid de fechas */
+  .date-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 8px 0 12px;
+  }
+  .date-field{ display:flex; flex-direction:column; gap:6px; }
+  
+  .date-field span{ font-size:13px; color:var(--muted); }
+  
+  /* Inputs de fecha */
+  input[type="date"]{
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--stroke);
+    background: var(--bg-soft);
+    padding: 0 12px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+  input[type="date"]:hover{
+    background:#f3edff;
+  }
+  input[type="date"]:focus{
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-15);
+    background:#fff;
+  }
+  
+  /* Icono del datepicker (Chrome) */
+  input[type="date"]::-webkit-calendar-picker-indicator{
+    cursor:pointer;
+    opacity:.8;
+    filter: hue-rotate(-20deg) saturate(1.2);
+  }
+  
+  /* Estados */
+  .error{
+    margin-top:8px;
+    color:#b00020;
+    background:#ffe7ea;
+    border:1px solid #ffc2ca;
+    padding:8px 12px;
+    border-radius:10px;
+    font-size:14px;
+  }
+  .exito{
+    margin-top:8px;
+    color:#0e7a2f;
+    background:#e9f8ee;
+    border:1px solid #c8eed7;
+    padding:8px 12px;
+    border-radius:10px;
+    font-size:14px;
+  }
+  
+  /* Botonera inferior */
+  .acciones{
+    display:flex;
+    gap:10px;
+    justify-content: space-between;
+    margin-top:16px;
+  }
+  
+  .btn-anterior,
+  .btn-guardar,
+  .btn-siguiente{
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .06s, box-shadow .2s, background .2s, border-color .2s;
+  }
+  
+  /* Anterior (outline) */
+  .btn-anterior{
+    background:#fff;
+    border-color:#dcd7ee;
+    color:#5b4b85;
+  }
+  .btn-anterior:hover{
+    box-shadow:0 8px 16px rgba(0,0,0,.06);
+  }
+  
+  /* Guardar (suave) */
+  .btn-guardar{
+    background:#f5f0ff;
+    border-color: var(--stroke);
+    color: var(--primary);
+  }
+  .btn-guardar:hover{
+    box-shadow:0 8px 18px rgba(106,0,255,.15);
+  }
+  
+  /* Siguiente (primario) */
+  .btn-siguiente{
+    background: var(--primary);
+    color:#fff;
+    border-color: var(--primary);
+  }
+  .btn-siguiente:hover{
+    box-shadow:0 10px 22px rgba(106,0,255,.25);
+  }
+  .btn-siguiente:active,
+  .btn-anterior:active,
+  .btn-guardar:active{
+    transform: translateY(1px);
+  }
+  
+  /* Responsive */
+  @media (max-width: 720px){
+    .date-grid{ grid-template-columns:1fr; }
+    .acciones{ flex-wrap:wrap; gap:8px; }
+  }
+  

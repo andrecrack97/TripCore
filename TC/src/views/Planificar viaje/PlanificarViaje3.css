@@ -1,0 +1,149 @@
+:root{
+    --primary:#6A00FF;
+    --primary-10: rgba(106,0,255,.10);
+    --primary-15: rgba(106,0,255,.15);
+    --ink:#1b1233;
+    --muted:#6a5f87;
+    --bg-soft:#faf7ff;
+    --stroke:#e8e2ff;
+  }
+  
+  .pv3-layout{
+    display:grid;
+    grid-template-columns:1fr 420px;
+    gap:32px;
+    align-items:start;
+  }
+  
+  /* Columna izquierda */
+  .pv3-left{ width:100%; }
+  
+  .pv3-subtitle{
+    margin:4px 0 2px;
+    font-size:20px;
+    color:var(--ink);
+  }
+  .pv3-helper{ margin:0 0 16px; color:var(--muted); }
+  
+  .pv3-label{
+    font-weight:700;
+    margin:12px 0 8px;
+    display:block;
+    color:var(--ink);
+  }
+  
+  /* Tiles de tipo de viajero */
+  .pv3-tiles{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  
+  .pv3-tile{
+    text-align:left;
+    border:1px solid var(--stroke);
+    background:var(--bg-soft);
+    padding:14px;
+    border-radius:12px;
+    cursor:pointer;
+    transition: box-shadow .2s, border-color .2s, transform .06s, background .2s;
+  }
+  .pv3-tile:hover{
+    box-shadow:0 6px 14px var(--primary-10);
+    transform: translateY(-1px);
+  }
+  .pv3-tile.active{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px var(--primary-15);
+    background:#f5f0ff;
+  }
+  .pv3-tile-title{ font-weight:800; margin-bottom:4px; color:var(--ink); }
+  .pv3-tile-desc{ font-size:13px; color:var(--muted); }
+  
+  /* Inputs */
+  .pv3-input{
+    width:100%;
+    height:42px;
+    border-radius:10px;
+    padding:0 12px;
+    border:1px solid #e5e5ef;
+    background:#fff;
+    outline:none;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .pv3-input:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px var(--primary-15);
+  }
+  
+  /* Chips Solo / Grupo */
+  .pv3-modo{ display:flex; gap:12px; }
+  .pv3-chip{
+    border:1px solid var(--stroke);
+    background:var(--bg-soft);
+    height:42px;
+    padding:0 14px;
+    border-radius:10px;
+    cursor:pointer;
+    transition: box-shadow .2s, border-color .2s, background .2s;
+    display:flex; align-items:center; gap:8px;
+    color:var(--ink);
+  }
+  .pv3-chip:hover{ box-shadow:0 6px 14px var(--primary-10); }
+  .pv3-chip.active{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px var(--primary-15);
+    background:#f5f0ff;
+  }
+  .pv3-chip-emoji{ font-size:16px; }
+  
+  /* Resumen */
+  .pv3-summary{
+    height:42px;
+    display:flex; align-items:center;
+    padding:0 12px;
+    background:#f7f3ff;
+    border:1px solid var(--stroke);
+    border-radius:10px;
+    font-size:14px;
+    color:#5a4d7a;
+  }
+  
+  /* Columna derecha (tarjeta ilustración) */
+  .pv3-right{
+    background:linear-gradient(180deg,#f6f2ff,#eef3ff);
+    border-radius:16px;
+    padding:24px;
+  }
+  .pv3-card{
+    position:relative;
+    border-radius:16px;
+    overflow:hidden;
+    background:#e9ecff;
+    aspect-ratio:1/1;
+    box-shadow:0 8px 24px var(--primary-15);
+  }
+  .pv3-card-img{
+    width:100%; height:100%;
+    object-fit:cover; display:block;
+  }
+  .pv3-card-fallback{
+    width:100%; height:100%;
+    background: radial-gradient(ellipse at top, #98c9ff, #9b7dff);
+  }
+  .pv3-card-caption{ text-align:center; margin-top:12px; color:var(--ink); }
+  .pv3-caption-sub{ font-size:12px; color:var(--muted); }
+  
+  /* Botonera (usa tus clases base) */
+  .acciones{ display:flex; gap:10px; justify-content:flex-end; }
+  
+  /* ===== Responsive ===== */
+  @media (max-width: 1024px){
+    .pv3-layout{ grid-template-columns:1fr; }
+    .pv3-right{ order:2; }
+  }
+  @media (max-width: 560px){
+    .pv3-tiles{ grid-template-columns:1fr; }
+    .pv3-modo{ flex-direction:column; }
+  }
+  
