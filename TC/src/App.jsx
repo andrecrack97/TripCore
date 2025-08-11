@@ -14,6 +14,9 @@ import PlanificarViaje3 from './views/Planificar viaje/PlanificarViaje3';
 import PlanificarViaje4 from './views/Planificar viaje/PlanificarViaje4';
 import PlanificarViaje5 from './views/Planificar viaje/PlanificarViaje5';
 
+// ⬇️ NUEVO: guard de rutas
+import RequireAuth from './components/RequireAuth';
+
 export function App() {
   return (
     <>
@@ -32,13 +35,51 @@ export function App() {
               </>
             }
           />
+
           <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Registro/>}/>
-          <Route path="/planificar" element={<PlanificarViaje1/>}/>
-          <Route path="/planificar/2" element={<PlanificarViaje2/>}/>
-          <Route path="/planificar/3" element={<PlanificarViaje3/>}/>
-          <Route path="/planificar/4" element={<PlanificarViaje4/>}/>
-          <Route path="/planificar/5" element={<PlanificarViaje5/>}/>
+          <Route path="/registro" element={<Registro />} />
+
+          {/* ⬇️ Rutas protegidas: si no hay sesión, redirige a /login */}
+          <Route
+            path="/planificar"
+            element={
+              <RequireAuth>
+                <PlanificarViaje1 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/planificar/2"
+            element={
+              <RequireAuth>
+                <PlanificarViaje2 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/planificar/3"
+            element={
+              <RequireAuth>
+                <PlanificarViaje3 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/planificar/4"
+            element={
+              <RequireAuth>
+                <PlanificarViaje4 />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/planificar/5"
+            element={
+              <RequireAuth>
+                <PlanificarViaje5 />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </main>
       <Footer />
