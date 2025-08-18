@@ -3,3 +3,6 @@ npm install
 npm start
 http://localhost:3005/api/viajes
 
+
+npm i @fortawesome/fontawesome-svg-core @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons @fortawesome/free-regular-svg-icons @fortawesome/free-brands-svg-icons
+

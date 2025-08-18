@@ -14,7 +14,7 @@ import PlanificarViaje3 from './views/Planificar viaje/PlanificarViaje3';
 import PlanificarViaje4 from './views/Planificar viaje/PlanificarViaje4';
 import PlanificarViaje5 from './views/Planificar viaje/PlanificarViaje5';
 
-// ⬇️ NUEVO: guard de rutas
+
 import RequireAuth from './components/RequireAuth';
 
 export function App() {
@@ -38,8 +38,6 @@ export function App() {
 
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
-
-          {/* ⬇️ Rutas protegidas: si no hay sesión, redirige a /login */}
           <Route
             path="/planificar"
             element={
