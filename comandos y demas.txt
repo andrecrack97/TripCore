@@ -6,3 +6,18 @@ http://localhost:3005/api/viajes
 
 npm i @fortawesome/fontawesome-svg-core @fortawesome/react-fontawesome @fortawesome/free-solid-svg-icons @fortawesome/free-regular-svg-icons @fortawesome/free-brands-svg-icons
 
+security, logins, click derecho, new login: tripcore_user, sql server autent, contraseñas, destildar enforce password policy, ok. 
+doble click en el usuasrio creado, user mapping, tildas tripcore Db, y tildas db_owner
+
+USE [master]
+GO
+CREATE LOGIN [asdasds] WITH PASSWORD=N'1234' MUST_CHANGE, DEFAULT_DATABASE=[master], CHECK_EXPIRATION=ON, CHECK_POLICY=ON
+GO
+USE [AlmuerzORT]
+GO
+CREATE USER [tripcore_user] FOR LOGIN [tripcore_user]
+GO
+USE [AlmuerzORT]
+GO
+ALTER ROLE [db_owner] ADD MEMBER [tripcore_user]
+GO

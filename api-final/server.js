@@ -1,29 +1,20 @@
 const express = require("express");
 const cors = require("cors");
-const sql = require("./db"); 
+require("dotenv").config();
+
 const app = express();
-const authRoutes = require("./routes/auth");
-const viajesRoutes = require("./routes/viajes");
-const usuariosRoutes = require("./routes/usuarios");
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/viajes", viajesRoutes);
-app.use("/api", authRoutes);
-app.use("/api/usuarios", usuariosRoutes);
-app.use("/api", require("./routes/auth"));
+// rutas
+app.use("/api", require("./routes/auth"));         // /api/register  /api/login
+app.use("/api/viajes", require("./routes/viajes"));
+app.use("/api/usuarios", require("./routes/usuarios"));
 
+app.get("/", (_req, res) => res.send("API TripCore de prueba"));
 
-app.get("/", (req, res) => {
-  console.log("✅ Alguien visitó /");
-  res.send("API TripCore de prueba");
-});
-
-const PORT = 3005;
+const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
 });
-
-
-

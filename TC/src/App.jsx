@@ -13,6 +13,8 @@ import PlanificarViaje2 from './views/Planificar viaje/PlanificarViaje2';
 import PlanificarViaje3 from './views/Planificar viaje/PlanificarViaje3';
 import PlanificarViaje4 from './views/Planificar viaje/PlanificarViaje4';
 import PlanificarViaje5 from './views/Planificar viaje/PlanificarViaje5';
+import MisViajes from './views/Mis viajes/MisViajes';
+import Perfil from './views/Perfil/Perfil';
 
 
 import RequireAuth from './components/RequireAuth';
@@ -35,9 +37,9 @@ export function App() {
               </>
             }
           />
-
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/perfil" element={<Perfil/>} />
           <Route
             path="/planificar"
             element={
@@ -78,11 +80,18 @@ export function App() {
               </RequireAuth>
             }
           />
+          <Route
+            path="/MisViajes"
+            element={
+              <RequireAuth>
+                <MisViajes/>
+              </RequireAuth>
+            }
+          />
         </Routes>
       </main>
       <Footer />
     </>
   );
 }
-
 export default App;

@@ -3,6 +3,7 @@ import './Registro.css';
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { registerUser } from "../../services/register";
 
 export default function Registro() {
   const navigate = useNavigate();
@@ -46,20 +47,15 @@ export default function Registro() {
 
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:3005/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, email, contraseña })
-      });
+      const resp = await registerUser(nombre, email, contraseña);
 
-      const data = await res.json();
-      if (res.ok) {
+      if (resp.success) {
         setError("");
         setExito("Registro exitoso. Redirigiendo...");
-        setTimeout(() => navigate("/"), 2000);
+        setTimeout(() => navigate("/"), 1500);
       } else {
         setExito("");
-        setError(data.message || "Error al registrar");
+        setError(resp.message || "Error al registrar");
       }
     } catch (err) {
       console.error(err);
