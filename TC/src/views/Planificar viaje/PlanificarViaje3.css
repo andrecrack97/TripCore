@@ -1,86 +1,170 @@
-/* PlanificarViaje3.css */
-
-/* Contenedor general */
-.planificador3-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 80vh;
-  background-color: #f9f9f9;
-  padding: 20px;
-}
-
-/* Caja central */
-.planificador3-box {
-  background-color: #fff;
-  padding: 30px;
+/* Wrapper general (no modifica body) */
+.pv3-wrap {
+  padding: 20px 22px 28px;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 600px;
+  background: linear-gradient(180deg, #e9ddff 0%, #cbbaff 35%, #c9b7ff 100%);
+  min-height: 100%;
+  color: #2e2662;
 }
 
-/* Migas de pan */
-.planificador3-breadcrumb {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 15px;
+/* Breadcrumb */
+.pv3-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c61a9;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.pv3-breadcrumb .crumb.active { color: #4a3c96; font-weight: 600; }
+.pv3-breadcrumb .sep { opacity: .7; }
+
+/* Título */
+.pv3-title {
+  margin: 0 0 14px;
+  font-size: 30px;
+  font-weight: 900;
+  color: #111021;
 }
 
-/* Títulos */
-.planificador3-box h2 {
-  font-size: 18px;
-  color: #6A00FF;
-  margin-bottom: 5px;
+/* Grid principal */
+.pv3-grid {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap: 18px;
+}
+@media (max-width: 960px) {
+  .pv3-grid { grid-template-columns: 1fr; }
 }
 
-.planificador3-box h1 {
-  font-size: 26px;
-  margin-bottom: 20px;
+/* Panel formulario */
+.pv3-form {
+  background: #ffffffcc;
+  backdrop-filter: blur(2px);
+  border: 1px solid #ece6ff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(46,28,109,.08);
 }
-
-/* Formulario */
-.planificador3-form label {
-  display: block;
-  margin-top: 15px;
-  font-weight: bold;
-  color: #333;
-}
-
-.planificador3-form select,
-.planificador3-form input,
-.planificador3-form textarea {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-/* Botones */
-.planificador3-btn-siguiente {
-  background-color: #6A00FF;
-  color: #fff;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 8px;
-  margin-top: 20px;
-  cursor: pointer;
+.pv3-section-title {
+  margin: 0 0 4px;
+  color: #2a2160;
   font-size: 16px;
+  font-weight: 800;
+}
+.pv3-subtle { margin: 0 0 12px; color: #6d61a8; font-size: 13.5px; }
+
+/* Chips tipo de viajero */
+.pv3-chip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+@media (max-width: 520px) { .pv3-chip-grid { grid-template-columns: 1fr; } }
+
+.pv3-chip {
+  text-align: left;
+  border: 1px solid #ddd2ff;
+  background: #faf8ff;
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: box-shadow .15s ease, transform .05s ease;
+}
+.pv3-chip--active {
+  border-color: #6a00ff;
+  box-shadow: 0 8px 18px rgba(106,0,255,.22);
+  background: #f3ecff;
+}
+.pv3-chip:active { transform: translateY(1px); }
+.pv3-chip-head { font-weight: 700; color: #2e2662; }
+.pv3-chip-desc { font-size: 12.5px; color: #6b6898; }
+
+/* Campos base */
+.pv3-field { display: grid; gap: 6px; margin: 10px 0 12px; }
+.pv3-label { font-size: 12.5px; color: #6d61a8; }
+.pv3-input {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d8cdfb;
+  border-radius: 10px;
+  background: #f7f4ff;
+  color: #342a79;
+  outline: none;
+  font-size: 14px;
 }
 
-.planificador3-btn-siguiente:hover {
-  background-color: #5800d4;
-}
+/* Solo / grupo */
+.pv3-group { margin-top: 6px; }
+.pv3-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .pv3-two { grid-template-columns: 1fr; } }
 
-/* Mensajes */
-.planificador3-error {
-  color: red;
-  margin-top: 10px;
+.pv3-tile {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid #e6ddff; background: #fff; border-radius: 12px;
+  padding: 10px; cursor: pointer;
 }
+.pv3-tile--active { border-color: #6a00ff; background: #f4eeff; box-shadow: 0 8px 18px rgba(106,0,255,.22); }
+.pv3-ico { width: 34px; height: 34px; display:grid; place-items:center; background:#efe9ff; border-radius: 10px; }
+.pv3-tile-title { font-weight: 700; color: #2e2662; }
+.pv3-tile-desc { font-size: 12.5px; color: #6b6898; }
 
-.planificador3-exito {
-  color: green;
-  margin-top: 10px;
+/* Resumen */
+.pv3-summary {
+  margin-top: 12px;
+  border: 1px solid #ece6ff;
+  background: #faf9ff;
+  border-radius: 12px;
+  padding: 12px;
 }
+.pv3-summary-title { font-size: 13px; color: #6d61a8; margin-bottom: 6px; }
+.pv3-summary-list { margin: 0; padding-left: 16px; color: #4b3b98; }
+
+/* Acciones */
+.pv3-actions {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 14px;
+}
+.btn {
+  height: 38px; padding: 0 14px; border-radius: 10px; border:1px solid transparent;
+  cursor: pointer; font-size: 14px;
+}
+.btn--ghost { background:#fff; border-color:#e6ddff; color:#5a4f8f; }
+.btn--primary { background:#6a00ff; color:#fff; box-shadow:0 8px 18px rgba(106,0,255,.25); }
+.btn:disabled { opacity:.6; cursor:not-allowed; }
+
+/* Aside ilustrado */
+.pv3-aside { display:flex; }
+.pv3-aside-card {
+  width: 100%;
+  border: 1px solid #e6ddff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f0f2ff 0%, #f4f0ff 100%);
+  padding: 18px;
+  display: grid; gap: 12px;
+  place-content: center;
+}
+.pv3-aside-img {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(53,17,130,.15);
+}
+.pv3-aside-img img {
+  width: 100%; height: 100%; object-fit: cover; display:block;
+}
+.pv3-aside-badge {
+  position: absolute; bottom: 10px;
+  background: #fff; border: 1px solid #e6ddff; width: 36px; height: 36px;
+  display:grid; place-items:center; border-radius: 50%;
+  box-shadow: 0 6px 14px rgba(46,28,109,.12);
+}
+.pv3-aside-badge--left { left: 10px; }
+.pv3-aside-badge--right { right: 10px; }
+.pv3-aside-text { text-align:center; }
+.pv3-aside-text h4 { margin: 0 0 4px; color:#2a2160; }
+.pv3-aside-text p { margin: 0; color:#6d61a8; font-size:13.5px; }

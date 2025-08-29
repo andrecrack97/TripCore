@@ -4,9 +4,9 @@ const pool = require("../db");
 const bcrypt = require("bcrypt");
 
 // Aliases por si viene "mail", "contraseña", etc.
-const getEmail = (body) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
-const getPassword = (body) => body.password ?? body.contraseña ?? body.contrasena;
-const getPasswordConfirm = (body) =>
+const getEmail = (body = {}) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
+const getPassword = (body = {}) => body.password ?? body.contraseña ?? body.contrasena;
+const getPasswordConfirm = (body = {}) =>
   body.confirmPassword ?? body.contraseñaConfirmada ?? body.contrasenaConfirmada ?? body.password2 ?? null;
 
 // POST /api/usuarios/registro

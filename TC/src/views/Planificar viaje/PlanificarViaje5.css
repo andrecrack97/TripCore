@@ -1,109 +1,77 @@
-.pv5-wrap {
-  padding: 20px 22px 28px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #e9ddff 0%, #cbbaff 35%, #c9b7ff 100%);
-  min-height: 100%;
-  color: #2e2662;
+.pv5-wrap{
+  padding:20px 22px 28px;
+  border-radius:12px;
+  background:linear-gradient(180deg,#e9ddff 0%,#cbbaff 35%,#c9b7ff 100%);
+  min-height:100%;
+  color:#2e2662;
 }
+.pv5-breadcrumb{display:flex;gap:8px;color:#6c61a9;font-size:13px;margin-bottom:6px}
+.pv5-breadcrumb .crumb.active{color:#4a3c96;font-weight:600}
+.pv5-breadcrumb .sep{opacity:.7}
+.pv5-header h1{margin:0 0 6px;font-size:22px;font-weight:800;color:#2a2160}
+.pv5-header p{margin:0 0 12px;color:#6d61a8;font-size:14px}
 
-/* Breadcrumb */
-.pv5-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6c61a9;
-  font-size: 13px;
-  margin-bottom: 6px;
+.pv5-box{
+  background:#fff;border:1px solid #ece6ff;border-radius:12px;
+  padding:12px;margin-bottom:14px;box-shadow:0 6px 18px rgba(46,28,109,.08);
 }
-.pv5-breadcrumb .crumb.active {
-  color: #4a3c96;
-  font-weight: 600;
-}
-.pv5-breadcrumb .sep {
-  opacity: 0.7;
-}
+.pv5-box-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pv5-box-head h3{margin:0;font-size:16px;color:#2a2160}
+.head-actions{display:flex;gap:8px}
 
-/* Header */
-.pv5-header h1 {
-  margin: 0 0 6px;
-  font-size: 26px;
-  font-weight: 800;
-  color: #2a2160;
-}
-.pv5-header p {
-  margin: 0 0 18px;
-  color: #6d61a8;
-  font-size: 14px;
-}
+.pv5-summary{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:8px;align-items:center}
+.pv5-summary-item{border:1px solid #efe6ff;background:#faf9ff;border-radius:10px;padding:10px}
+.pv5-summary .tag{display:block;font-size:11.5px;color:#7a6db8}
+.pv5-summary .val{font-weight:700;color:#2e2662}
+.pv5-summary-actions{justify-self:end}
+@media (max-width:900px){.pv5-summary{grid-template-columns:1fr 1fr}.pv5-summary-actions{grid-column:1/-1;justify-self:start}}
 
-/* Cards */
-.pv5-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
-}
-.pv5-card {
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid #e6ddff;
-  overflow: hidden;
-  box-shadow: 0 6px 14px rgba(46, 28, 109, 0.08);
-  display: flex;
-  flex-direction: column;
-}
-.pv5-card img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-}
-.pv5-card-body {
-  padding: 12px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.pv5-card-body h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
-  color: #2e2662;
-}
-.pv5-card-body p {
-  margin: 0 0 10px;
-  font-size: 13.5px;
-  color: #53608a;
-  flex: 1;
-}
-.pv5-price {
-  font-weight: 700;
-  color: #6a00ff;
-  font-size: 14px;
-}
+.pv5-transport{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.pv5-transport-left{display:grid;gap:4px}
+.t-title{font-size:15px;font-weight:700;color:#2e2662}
+.t-meta{display:flex;gap:10px;padding:0;margin:0;color:#6b6898;font-size:13px;flex-wrap:wrap}
+.t-meta li{list-style:none}
+.t-provider{color:#482ca1;font-weight:700}
+.pv5-transport-right{display:flex;gap:8px;align-items:center}
+.badge{display:inline-block;padding:4px 8px;border-radius:8px;font-size:11.5px;font-weight:700}
+.badge--blue{background:#e6f0ff;color:#2b5fd9}
+.pill.added{background:#e7fbf0;color:#0c835a;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px}
 
-/* Footer */
-.pv5-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.btn {
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 14px;
-}
-.btn--ghost {
-  background: #fff;
-  border-color: #e6ddff;
-  color: #5a4f8f;
-}
-.btn--primary {
-  background: #6a00ff;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(106, 0, 255, 0.25);
-}
-.btn:active {
-  transform: translateY(1px);
-}
+.pv5-cards{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{grid-column:span 4;background:#fff;border:1px solid #e6ddff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.card.small{grid-column:span 4}
+@media (max-width:1100px){.card,.card.small{grid-column:span 6}}
+@media (max-width:700px){.card,.card.small{grid-column:span 12}}
+.card--active{box-shadow:0 10px 22px rgba(106,0,255,.18);border-color:#6a00ff}
+.card-img{position:relative;height:150px;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:cover;display:block}
+.card-chip{position:absolute;left:8px;top:8px;background:#ffffffd9;border:1px solid #efe6ff;border-radius:8px;padding:3px 8px;font-size:11.5px}
+.card-body{padding:10px;display:flex;flex-direction:column;gap:6px}
+.card-title{font-weight:700;color:#2e2662}
+.card-sub{color:#6b6898;font-size:13px}
+.card-price{color:#6a00ff;font-weight:800}
+.card-price span{color:#7a6db8;font-weight:500}
+.card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.pv5-budget .budget-grid{display:grid;grid-template-columns:1fr 260px;gap:14px}
+@media (max-width:820px){.pv5-budget .budget-grid{grid-template-columns:1fr}}
+.budget-table{width:100%;border-collapse:collapse}
+.budget-table td{padding:8px;border-bottom:1px dashed #eee}
+.budget-table tr.sep td{border-top:1px solid #ede7ff;border-bottom:none}
+.budget-table .num{text-align:right}
+.budget-table .strong{font-weight:800;color:#2a2160}
+.budget-status{display:grid;gap:8px;align-content:start}
+.status-box{border-radius:10px;padding:10px;font-weight:700}
+.status-box.ok{background:#e7fbf0;color:#0c835a;border:1px solid #c6f0db}
+.status-box.bad{background:#fff2f2;color:#a12b2b;border:1px solid #ffd7d7}
+.restante{color:#5a4f8f}
+
+.pv5-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+.pv5-footer-right{display:flex;gap:8px;align-items:center}
+
+.btn{height:36px;padding:0 12px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-size:13.5px}
+.btn--primary{background:#6a00ff;color:#fff;box-shadow:0 8px 18px rgba(106,0,255,.25)}
+.btn--secondary{background:#ece6ff;color:#482ca1;border-color:#d4c6ff}
+.btn--ghost{background:#fff;color:#5a4f8f;border-color:#e6ddff}
+.btn--danger{background:#ffe9ec;color:#8a2032;border-color:#ffcbd3}
+.btn:active{transform:translateY(1px)}

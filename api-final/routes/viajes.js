@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../db");      // <- Pool de 'pg'
+const pool = require("../db");
 
-// GET /api/viajes  -> lista todos (ajusta a tu necesidad: por usuario, paginado, etc.)
+// GET /api/viajes
 router.get("/", async (_req, res) => {
   try {
     const { rows } = await pool.query(
@@ -17,11 +17,9 @@ router.get("/", async (_req, res) => {
   }
 });
 
-// POST /api/viajes/planificar  -> crea un viaje según el esquema de Viajes
+// POST /api/viajes/planificar
 router.post("/planificar", async (req, res) => {
   const { id_usuario, destino, fecha_inicio, fecha_fin } = req.body;
-
-  // Validaciones mínimas según el modelo de Viajes (no incluye 'origen')
   if (!id_usuario || !destino || !fecha_inicio || !fecha_fin) {
     return res.status(400).json({
       success: false,

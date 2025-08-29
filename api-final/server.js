@@ -4,17 +4,17 @@ require("dotenv").config();
 
 const app = express();
 
+// Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // <-- clave para que req.body NO sea undefined
 
-// rutas
-app.use("/api", require("./routes/auth"));         // /api/register  /api/login
-app.use("/api/viajes", require("./routes/viajes"));
-app.use("/api/usuarios", require("./routes/usuarios"));
+// Rutas
+app.use("/api", require("./routes/auth"));            // /api/register - /api/login
+app.use("/api/usuarios", require("./routes/usuarios"));// /api/usuarios/registro
+app.use("/api/viajes", require("./routes/viajes"));    // ejemplo viajes
 
-app.get("/", (_req, res) => res.send("API TripCore de prueba"));
+// Salud
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3005;
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 API en http://localhost:${PORT}`));

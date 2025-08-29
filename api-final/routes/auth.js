@@ -4,16 +4,15 @@ const pool = require("../db");
 const bcrypt = require("bcrypt");
 
 // Normaliza email (acepta "email" o "mail")
-const getEmail = (body) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
+const getEmail = (body = {}) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
 // Normaliza password (acepta "password" o "contraseña")
-const getPassword = (body) => body.password ?? body.contraseña ?? body.contrasena;
-// Normaliza confirmación (acepta "confirmPassword", "confirmar" o "contraseñaConfirmada")
-const getPasswordConfirm = (body) =>
+const getPassword = (body = {}) => body.password ?? body.contraseña ?? body.contrasena;
+// Normaliza confirmación (acepta "confirmPassword", "confirmar", etc.)
+const getPasswordConfirm = (body = {}) =>
   body.confirmPassword ?? body.confirmar ?? body.contraseñaConfirmada ?? body.contrasenaConfirmada ?? body.password2 ?? null;
 
 router.post("/register", async (req, res) => {
   try {
-    // 🔎 LOG TEMPORAL (borralo cuando ande)
     console.log("➡️ /api/register payload:", req.body);
 
     const nombre = (req.body.nombre ?? "").trim();

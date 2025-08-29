@@ -48,7 +48,6 @@ export default function Registro() {
 
     try {
       setLoading(true);
-      // ⬇️ Ahora mandamos todos los campos al servicio
       const resp = await registerUser(nombre, email, contraseña, confirmar, pais);
 
       if (resp.success) {

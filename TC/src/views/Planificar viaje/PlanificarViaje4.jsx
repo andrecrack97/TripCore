@@ -165,7 +165,7 @@ export default function PlanificarViaje4() {
 
       {/* Navegación */}
       <footer className="pv4-footer">
-        <button className="btn btn--ghost" onClick={() => navigate("/planificar-viaje/3")}>
+        <button className="btn btn--ghost" onClick={() => navigate("/planificar/3")}>
           ◀ Anterior
         </button>
         <button
@@ -173,7 +173,7 @@ export default function PlanificarViaje4() {
           onClick={() => {
             // Podés persistir en contexto/estado global si lo necesitás:
             // saveBudget({ total, currency: from });
-            navigate("/planificar-viaje/5");
+            navigate("/planificar/5");
           }}
         >
           Siguiente ▶

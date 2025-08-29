@@ -5,19 +5,19 @@ import "./Login.css";
 
 export default function Login() {
   const [email, setEmail] = useState("");
-  const [contraseña, setContraseña] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    if (!email.trim() || !contraseña.trim()) {
+    if (!email.trim() || !password.trim()) {
       setError("Completa todos los campos");
       return;
     }
-    const resp = await loginUser(email, contraseña);
+    const resp = await loginUser(email, password);
     if (resp.success) {
       setError("");
-      navigate("/");                // redirigir a home/dashboard
+      navigate("/"); // redirigir a home/dashboard
     } else {
       setError(resp.message);
     }
@@ -33,25 +33,37 @@ export default function Login() {
             handleLogin();
           }}
         >
-          <h1>¡Bienvenido de vuelta,<br />viajero!</h1>
+          <h1>
+            ¡Bienvenido de vuelta,<br />viajero!
+          </h1>
 
           <input
             type="email"
             placeholder="Correo electrónico"
             value={email}
-            onChange={(e) => { setEmail(e.target.value); setError(""); }}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+            }}
           />
           <input
             type="password"
             placeholder="Contraseña"
-            value={contraseña}
-            onChange={(e) => { setContraseña(e.target.value); setError(""); }}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
           />
 
           {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <a href="#" className="link">¿Olvidaste tu contraseña?</a>
-          <a href="/Registro" className="link">¿No tienes una cuenta? Registrate.</a>
+          <a href="#" className="link">
+            ¿Olvidaste tu contraseña?
+          </a>
+          <a href="/Registro" className="link">
+            ¿No tienes una cuenta? Registrate.
+          </a>
 
           <button type="submit">Iniciar sesión</button>
         </form>
