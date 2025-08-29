@@ -1,22 +1,14 @@
-const sql = require("mssql");
-require("dotenv").config();
+// db.js
+const { Pool } = require('pg');
 
-const config = {
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT || 5432),
+  database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  server: process.env.DB_SERVER,   // 'localhost' o 'A-PHZ2C-DID-03'
-  database: process.env.DB_DATABASE,
-  port: parseInt(process.env.DB_PORT || '1433', 10),
-  options: {
-    encrypt: false,
-    trustServerCertificate: true,
-    // Descomentar si tenés instancia nombrada:
-    // instanceName: 'SQLEXPRESS'
-  }
-};
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+  max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 30000
+});
 
-sql.connect(config)
-  .then(() => console.log("✅ Conectado a SQL Server"))
-  .catch(err => console.error("❌ Error de conexión:", err));
-
-module.exports = sql;
+module.exports = pool;

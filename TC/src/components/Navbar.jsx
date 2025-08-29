@@ -14,7 +14,7 @@ function Navbar() {
         <a href="/planificar">Planea tu viaje</a>
         <a href="#funcionalidades">Explorar destinos</a>
         <a href="#explorar">Ofertas</a>
-        <a href="#explorar">Mis viajes</a>
+        <a href="/MisViajes">Mis viajes</a>
         <a href="#ayuda">Ayuda</a>
       </nav>
 

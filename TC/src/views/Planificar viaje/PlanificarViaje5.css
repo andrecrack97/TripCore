@@ -1,0 +1,109 @@
+.pv5-wrap {
+  padding: 20px 22px 28px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #e9ddff 0%, #cbbaff 35%, #c9b7ff 100%);
+  min-height: 100%;
+  color: #2e2662;
+}
+
+/* Breadcrumb */
+.pv5-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c61a9;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.pv5-breadcrumb .crumb.active {
+  color: #4a3c96;
+  font-weight: 600;
+}
+.pv5-breadcrumb .sep {
+  opacity: 0.7;
+}
+
+/* Header */
+.pv5-header h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  color: #2a2160;
+}
+.pv5-header p {
+  margin: 0 0 18px;
+  color: #6d61a8;
+  font-size: 14px;
+}
+
+/* Cards */
+.pv5-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.pv5-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e6ddff;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(46, 28, 109, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+.pv5-card img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+.pv5-card-body {
+  padding: 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.pv5-card-body h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #2e2662;
+}
+.pv5-card-body p {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  color: #53608a;
+  flex: 1;
+}
+.pv5-price {
+  font-weight: 700;
+  color: #6a00ff;
+  font-size: 14px;
+}
+
+/* Footer */
+.pv5-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.btn {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn--ghost {
+  background: #fff;
+  border-color: #e6ddff;
+  color: #5a4f8f;
+}
+.btn--primary {
+  background: #6a00ff;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(106, 0, 255, 0.25);
+}
+.btn:active {
+  transform: translateY(1px);
+}

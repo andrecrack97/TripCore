@@ -1,3 +1,4 @@
+// src/views/registro.jsx
 import React, { useState } from 'react';
 import './Registro.css';
 import { useNavigate } from "react-router-dom";
@@ -47,7 +48,8 @@ export default function Registro() {
 
     try {
       setLoading(true);
-      const resp = await registerUser(nombre, email, contraseña);
+      // ⬇️ Ahora mandamos todos los campos al servicio
+      const resp = await registerUser(nombre, email, contraseña, confirmar, pais);
 
       if (resp.success) {
         setError("");

@@ -1,57 +1,85 @@
 const express = require("express");
 const router = express.Router();
-const sql = require("../db");
+const pool = require("../db");
 const bcrypt = require("bcrypt");
 
-// POST /api/register
+// Normaliza email (acepta "email" o "mail")
+const getEmail = (body) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
+// Normaliza password (acepta "password" o "contraseña")
+const getPassword = (body) => body.password ?? body.contraseña ?? body.contrasena;
+// Normaliza confirmación (acepta "confirmPassword", "confirmar" o "contraseñaConfirmada")
+const getPasswordConfirm = (body) =>
+  body.confirmPassword ?? body.confirmar ?? body.contraseñaConfirmada ?? body.contrasenaConfirmada ?? body.password2 ?? null;
+
 router.post("/register", async (req, res) => {
-  const { nombre, email, contraseña } = req.body;
-
-  if (!nombre || !email || !contraseña) {
-    return res.status(400).json({ success: false, message: "Todos los campos son obligatorios" });
-  }
-
   try {
-    // ¿ya existe?
-    const existing = await sql.query`
-      SELECT 1 FROM Usuarios WHERE email = ${email}
-    `;
-    if (existing.recordset.length > 0) {
+    // 🔎 LOG TEMPORAL (borralo cuando ande)
+    console.log("➡️ /api/register payload:", req.body);
+
+    const nombre = (req.body.nombre ?? "").trim();
+    const email = getEmail(req.body);
+    const plain = getPassword(req.body);
+    const plain2 = getPasswordConfirm(req.body);
+    const pais = (req.body.pais ?? req.body.país ?? "").trim();
+
+    if (!nombre || !email || !plain) {
+      return res.status(400).json({ success: false, message: "Todos los campos son obligatorios" });
+    }
+    if (plain2 !== null && plain !== plain2) {
+      return res.status(400).json({ success: false, message: "Las contraseñas no coinciden" });
+    }
+
+    const exists = await pool.query(
+      `SELECT 1 FROM public.usuarios WHERE email = $1 LIMIT 1`,
+      [email]
+    );
+    if (exists.rowCount > 0) {
       return res.status(409).json({ success: false, message: "El correo ya está registrado" });
     }
 
-    // hash + guardar
-    const hashed = await bcrypt.hash(contraseña, 10);
-    await sql.query`
-      INSERT INTO Usuarios (nombre, email, contraseña)
-      VALUES (${nombre}, ${email}, ${hashed})
-    `;
+    const hash = await bcrypt.hash(String(plain), 10);
 
-    return res.status(201).json({ success: true, message: "Usuario registrado correctamente" });
+    const ins = await pool.query(
+      `INSERT INTO public.usuarios (nombre, email, password_hash, pais, idioma, moneda_preferida, rol)
+       VALUES ($1, $2, $3, $4, 'es', 'USD', 'turista')
+       RETURNING id_usuario, nombre, email, pais`,
+      [nombre, email, hash, pais || null]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Usuario registrado correctamente",
+      user: ins.rows[0],
+    });
   } catch (err) {
-    console.error("❌ Error en registro:", err);
+    console.error("❌ /api/register error:", err);
     return res.status(500).json({ success: false, message: "Error al registrar usuario" });
   }
 });
 
-// POST /api/login
 router.post("/login", async (req, res) => {
-  const { email, contraseña } = req.body;
-
-  if (!email || !contraseña) {
-    return res.status(400).json({ success: false, message: "Completa email y contraseña" });
-  }
-
   try {
-    const r = await sql.query`
-      SELECT TOP 1 * FROM Usuarios WHERE email = ${email}
-    `;
-    const user = r.recordset[0];
-    if (!user) {
+    const email = getEmail(req.body);
+    const plain = getPassword(req.body);
+
+    if (!email || !plain) {
+      return res.status(400).json({ success: false, message: "Completa email y contraseña" });
+    }
+
+    const r = await pool.query(
+      `SELECT id_usuario, nombre, email, password_hash
+         FROM public.usuarios
+        WHERE email = $1
+        LIMIT 1`,
+      [email]
+    );
+
+    const user = r.rows[0];
+    if (!user || !user.password_hash) {
       return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
     }
 
-    const ok = await bcrypt.compare(contraseña, user.contraseña);
+    const ok = await bcrypt.compare(String(plain), user.password_hash);
     if (!ok) {
       return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
     }
@@ -59,10 +87,10 @@ router.post("/login", async (req, res) => {
     return res.json({
       success: true,
       message: "Inicio de sesión exitoso",
-      user: { id: user.id_usuario, nombre: user.nombre, email: user.email }
+      user: { id: user.id_usuario, nombre: user.nombre, email: user.email },
     });
   } catch (err) {
-    console.error("❌ Error en login:", err);
+    console.error("❌ /api/login error:", err);
     return res.status(500).json({ success: false, message: "Error del servidor" });
   }
 });

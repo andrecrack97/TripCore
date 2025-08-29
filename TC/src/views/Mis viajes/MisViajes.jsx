@@ -1,197 +1,281 @@
 import React, { useMemo, useState } from "react";
 import "./MisViajes.css";
 
-/**
- * Estructura esperada de cada viaje:
- * {
- *   id: string|number,
- *   titulo: string,               // p.ej. "París, Francia"
- *   desde: string,                // ISO o "YYYY-MM-DD"
- *   hasta: string,                // ISO o "YYYY-MM-DD"
- *   imagen: string,               // URL
- *   onVerDetalles?: (id) => void, // opcional
- * }
- *
- * Uso:
- * <MisViajes viajes={listaDeViajes} onNuevoViaje={() => ...} onVerDetalles={(id)=>...} />
- */
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
 
-const TABS = ["Todos", "Próximos", "En curso", "Completados"];
+const TABS = [
+  { key: "all", label: "Todos" },
+  { key: "upcoming", label: "Próximos" },
+  { key: "ongoing", label: "En curso" },
+  { key: "completed", label: "Completados" },
+];
 
-function estadoDeViaje(desdeStr, hastaStr, now = new Date()) {
-  const desde = new Date(desdeStr);
-  const hasta = new Date(hastaStr);
+// Utilidades de fechas
+const fmtRange = (ini, fin) => {
+  const opt = { day: "numeric", month: "long", year: "numeric" };
+  const s = new Date(ini).toLocaleDateString("es-AR", opt);
+  const e = new Date(fin).toLocaleDateString("es-AR", opt);
+  return `${s} - ${e}`;
+};
 
-  // Normalizamos horas para evitar off-by-one por zonas
-  const hoy = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const d = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
-  const h = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+const getStatus = (ini, fin) => {
+  const today = new Date();
+  const start = new Date(ini);
+  const end = new Date(fin);
+  if (today < start) return "upcoming";
+  if (today > end) return "completed";
+  return "ongoing";
+};
 
-  if (h < hoy) return "Completado";
-  if (d > hoy) return "Próximo";
-  return "En curso";
-}
+const StatusBadge = ({ status }) => {
+  const map = {
+    upcoming: { text: "Próximo", cls: "badge--upcoming" },
+    ongoing: { text: "En curso", cls: "badge--ongoing" },
+    completed: { text: "Completado", cls: "badge--completed" },
+  };
+  const { text, cls } = map[status] || { text: "Estado", cls: "" };
+  return <span className={`badge ${cls}`}>{text}</span>;
+};
 
-function formatFechaRango(desdeStr, hastaStr) {
-  const f = (s) =>
-    new Date(s).toLocaleDateString(undefined, {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
+export default function MisViajes() {
+  const { token, user } = useAuth?.() ?? { token: null, user: null };
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [trips, setTrips] = useState([]);
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState("all");
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/api/viajes/mis-viajes`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: "include", // por si usás cookies
+        });
+        if (!res.ok) {
+          const data = await safeJson(res);
+          throw new Error(data?.message || `Error ${res.status}`);
+        }
+        const data = await res.json();
+        if (mounted) setTrips(Array.isArray(data) ? data : data?.viajes ?? []);
+      } catch (err) {
+        if (mounted) setError(err.message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => (mounted = false);
+  }, [token]);
+
+  const result = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const filtered = trips.filter((t) => {
+      const status = getStatus(t.fecha_inicio, t.fecha_fin);
+      const byTab =
+        active === "all" ? true : status === active;
+      const bySearch =
+        !needle ||
+        [t.destino, t.ciudad, t.pais, t.titulo]
+          .filter(Boolean)
+          .some((s) => s.toLowerCase().includes(needle));
+      return byTab && bySearch;
     });
-  return `${f(desdeStr)}  -  ${f(hastaStr)}`;
-}
 
-export default function MisViajes({
-  viajes = [],
-  onNuevoViaje,
-  onVerDetalles,
-}) {
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState("Todos");
-
-  const enriquecidos = useMemo(
-    () =>
-      viajes.map((v) => ({
-        ...v,
-        estado: estadoDeViaje(v.desde, v.hasta),
-      })),
-    [viajes]
-  );
-
-  const filtrados = useMemo(() => {
-    let list = enriquecidos;
-
-    // filtro de pestaña
-    if (tab !== "Todos") {
-      list = list.filter((v) => v.estado === tab);
-    }
-
-    // búsqueda por texto
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter((v) => v.titulo?.toLowerCase().includes(q));
-    }
-
-    // orden sugerido: Próximos (fecha más cercana), En curso, Completados
-    const peso = { Próximo: 0, "En curso": 1, Completado: 2 };
-    return [...list].sort((a, b) => {
-      const pa = peso[a.estado] ?? 9;
-      const pb = peso[b.estado] ?? 9;
-      if (pa !== pb) return pa - pb;
-      return new Date(a.desde) - new Date(b.desde);
+    // orden: primero en curso, luego próximos, luego completados, cada grupo por fecha inicio asc
+    const rank = { ongoing: 0, upcoming: 1, completed: 2 };
+    return filtered.sort((a, b) => {
+      const sa = rank[getStatus(a.fecha_inicio, a.fecha_fin)];
+      const sb = rank[getStatus(b.fecha_inicio, b.fecha_fin)];
+      if (sa !== sb) return sa - sb;
+      return new Date(a.fecha_inicio) - new Date(b.fecha_inicio);
     });
-  }, [enriquecidos, query, tab]);
+  }, [trips, q, active]);
+
+  if (loading) {
+    return (
+      <div className="mv-wrap">
+        <Header onSearch={setQ} value={q} onNewTrip={handleNewTrip} active={active} setActive={setActive} />
+        <div className="skeleton-grid">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div className="skeleton-card" key={i} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mv-wrap">
+        <Header onSearch={setQ} value={q} onNewTrip={handleNewTrip} active={active} setActive={setActive} />
+        <div className="error-box">
+          <p>⚠️ No pudimos cargar tus viajes.</p>
+          <code>{error}</code>
+          <button className="btn btn--primary" onClick={() => window.location.reload()}>Reintentar</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="mv-page">
-      <header className="mv-topbar">
-        <div className="mv-brand">
-          <span className="mv-logo">✈︎</span>
-          <span className="mv-title">TripCore</span>
-        </div>
-        <button className="mv-btn mv-btn-primary-outline">Iniciar Sesión</button>
-      </header>
+    <div className="mv-wrap">
+      <Header
+        onSearch={setQ}
+        value={q}
+        onNewTrip={handleNewTrip}
+        active={active}
+        setActive={setActive}
+        subtitle={`Aquí puedes ver y gestionar los viajes que ${user ? user.nombre : "has"} planificado con TripCore.`}
+      />
 
-      <main className="mv-container">
-        <section className="mv-header-card">
-          <h2 className="mv-h2">Mis Viajes</h2>
-          <p className="mv-sub">Aquí puedes ver y gestionar los viajes que has planificado con TripCore.</p>
-
-          <div className="mv-controls">
-            <div className="mv-search">
-              <span className="mv-search-icon">🔎</span>
-              <input
-                type="text"
-                placeholder="Buscar destino..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="mv-tabs">
-              {TABS.map((t) => (
-                <button
-                  key={t}
-                  className={`mv-chip ${tab === t ? "is-active" : ""}`}
-                  onClick={() => setTab(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            <div className="mv-actions">
-              <button
-                className="mv-btn mv-btn-primary"
-                onClick={onNuevoViaje}
-                title="Crear nuevo viaje"
-              >
-                <span className="mv-plus">＋</span> Nuevo viaje
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="mv-grid">
-          {filtrados.map((v) => (
-            <article className="mv-card" key={v.id}>
-              <div className="mv-card-img">
-                <img src={v.imagen} alt={v.titulo} />
-              </div>
-
-              <div className="mv-card-body">
-                <div className="mv-card-head">
-                  <h3 className="mv-card-title">{v.titulo}</h3>
-                  <button className="mv-icon-btn" title="Más opciones">⋯</button>
-                </div>
-
-                <div className="mv-card-dates">{formatFechaRango(v.desde, v.hasta)}</div>
-
-                <div className="mv-card-status">
-                  <EstadoBadge estado={v.estado} />
-                </div>
-
-                <div className="mv-card-actions">
-                  <button
-                    className="mv-btn mv-btn-primary"
-                    onClick={() => (onVerDetalles ? onVerDetalles(v.id) : null)}
-                  >
-                    Ver Detalles
-                  </button>
-
-                  <div className="mv-dropdown">
-                    <button className="mv-btn mv-btn-light">
-                      Adicionales <span className="mv-caret">▾</span>
-                    </button>
-                    <ul className="mv-menu">
-                      <li>Itinerario</li>
-                      <li>Pasajes</li>
-                      <li>Hospedaje</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </article>
+      {result.length === 0 ? (
+        <EmptyState onNewTrip={handleNewTrip} />
+      ) : (
+        <div className="cards-grid">
+          {result.map((t) => (
+            <TripCard key={t.id_viaje || t.id} trip={t} />
           ))}
-
-          {filtrados.length === 0 && (
-            <div className="mv-empty">
-              <p>No se encontraron viajes con esos filtros.</p>
-            </div>
-          )}
-        </section>
-      </main>
+        </div>
+      )}
     </div>
   );
 }
 
-function EstadoBadge({ estado }) {
-  const map = {
-    Próximo: { className: "mv-badge upcoming", text: "Próximo" },
-    "En curso": { className: "mv-badge ongoing", text: "En curso" },
-    Completado: { className: "mv-badge done", text: "Completado" },
+function Header({ onSearch, value, onNewTrip, active, setActive, subtitle }) {
+  return (
+    <div className="mv-header">
+      <div className="mv-title">
+        <h1>Mis Viajes</h1>
+        <p>{subtitle || "Aquí puedes ver y gestionar tus viajes."}</p>
+      </div>
+      <div className="mv-actions">
+        <div className="search">
+          <span className="search-icon">🔍</span>
+          <input
+            value={value}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Buscar destino..."
+            aria-label="Buscar destino"
+          />
+        </div>
+
+        <div className="tabs">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              className={`tab ${active === t.key ? "tab--active" : ""}`}
+              onClick={() => setActive(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <button className="btn btn--primary" onClick={onNewTrip}>
+          <span className="plus">＋</span> Nuevo viaje
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TripCard({ trip }) {
+  const {
+    titulo,
+    destino,
+    ciudad,
+    pais,
+    fecha_inicio,
+    fecha_fin,
+    portada_url,
+  } = normalizeTrip(trip);
+
+  const status = getStatus(fecha_inicio, fecha_fin);
+  const title = titulo || [ciudad, pais].filter(Boolean).join(", ") || destino || "Viaje";
+
+  return (
+    <article className="trip-card">
+      <div className="trip-cover">
+        <img
+          src={portada_url}
+          alt={title}
+          onError={(e) => (e.currentTarget.src = FALLBACK_IMAGE)}
+        />
+      </div>
+
+      <div className="trip-body">
+        <div className="trip-head">
+          <h3>{title}</h3>
+          <button className="icon-btn" title="Más opciones">⋮</button>
+        </div>
+
+        <div className="trip-dates">{fmtRange(fecha_inicio, fecha_fin)}</div>
+
+        <div className="trip-footer">
+          <StatusBadge status={status} />
+          <div className="trip-actions">
+            <button className="btn btn--secondary">Ver Detalles</button>
+            <div className="dropdown">
+              <button className="btn btn--ghost">Adicionales ▾</button>
+              <div className="dropdown-menu">
+                <button>Itinerario</button>
+                <button>Gastos</button>
+                <button>Compartir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function EmptyState({ onNewTrip }) {
+  return (
+    <div className="empty">
+      <h3>No hay viajes para mostrar</h3>
+      <p>Creá un nuevo viaje o cambia los filtros de búsqueda.</p>
+      <button className="btn btn--primary" onClick={onNewTrip}>
+        Crear mi primer viaje
+      </button>
+    </div>
+  );
+}
+
+// Helpers
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop";
+
+const safeJson = async (res) => {
+  try { return await res.json(); } catch { return null; }
+};
+
+function normalizeTrip(t) {
+  // Ajustá las claves a tu modelo de DB/API
+  return {
+    id: t.id_viaje ?? t.id,
+    titulo: t.titulo ?? t.nombre ?? null,
+    destino: t.destino ?? null,
+    ciudad: t.ciudad ?? (t.lugar?.ciudad ?? null),
+    pais: t.pais ?? (t.lugar?.pais ?? null),
+    fecha_inicio: t.fecha_inicio ?? t.inicio ?? t.startDate,
+    fecha_fin: t.fecha_fin ?? t.fin ?? t.endDate,
+    portada_url:
+      t.portada_url ??
+      t.imagen ??
+      t.coverUrl ??
+      FALLBACK_IMAGE,
   };
-  const cfg = map[estado] ?? { className: "mv-badge", text: estado };
-  return <span className={cfg.className}>{cfg.text}</span>;
+}
+
+function handleNewTrip() {
+  // Redirección simple (ajustá a tu router)
+  window.location.href = "/planificar-viaje";
 }
