@@ -196,7 +196,7 @@ export default function PlanificarViaje3() {
                 Cuéntanos sobre ti para diseñar la mejor experiencia
               </p>
             </div>
-          </div>
+          </div>  
         </aside>
       </div>
     </div>
