@@ -1,0 +1,9 @@
+@echo off
+echo Iniciando servidor de TripCore...
+echo.
+echo Verificando dependencias...
+npm install
+echo.
+echo Iniciando servidor en puerto 3005...
+node server.js
+pause

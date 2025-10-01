@@ -1,22 +1,20 @@
-const sql = require("mssql");
+const { Pool } = require("pg");
+require("dotenv").config();
 
-const config = {
-  user: "tripcore_user",            // tu usuario
-  password: "TripCore123!",         // tu contraseña
-  server: "localhost",              // o el nombre de tu servidor
-  database: "TripCore",             // tu base
-  options: {
-    encrypt: false,                 // desactivalo si no usás SSL
-    trustServerCertificate: true    // útil en localhost
-  }
-};
+const pool = new Pool({
+  host: process.env.PGHOST || "localhost",
+  port: process.env.PGPORT || 5432,
+  database: process.env.PGDATABASE || "tripcore",
+  user: process.env.PGUSER || "postgres",
+  password: process.env.PGPASSWORD || "password",
+  ssl: false
+});
 
 async function testConnection() {
   try {
-    let pool = await sql.connect(config);
-    let result = await pool.request().query("SELECT 1 AS Pong");
-    console.log("✅ Conexión exitosa:", result.recordset);
-    await sql.close();
+    const result = await pool.query("SELECT 1 AS pong");
+    console.log("✅ Conexión exitosa a PostgreSQL:", result.rows);
+    await pool.end();
   } catch (err) {
     console.error("❌ Error de conexión:", err);
   }

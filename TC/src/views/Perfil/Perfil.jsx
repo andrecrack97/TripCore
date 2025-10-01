@@ -1,18 +1,80 @@
-import React, { useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import "./Perfil.css";
+import { UserContext } from "../../context/UserContext.jsx";
+import { fetchUserTrips, updateUser, fetchUserDetails } from "../../services/profile.js";
 
 export default function Perfil() {
   const [activeTab, setActiveTab] = useState("historial");
+  const { user, setUser } = useContext(UserContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ nombre: "", email: "", idioma: "Español", moneda: "USD - Dólar", pais: "" });
+  const [tripsState, setTripsState] = useState([]);
 
-  // Datos de ejemplo para las cards
-  const trips = [
-    { id: 1, ciudad: "Cancún", pais: "México", fecha: "22 - 29 Ago 2023", rating: 4.8, img: "/assets/cancun.jpg" },
-    { id: 2, ciudad: "Barcelona", pais: "España", fecha: "3 - 10 Jun 2023", rating: 4.5, img: "/assets/barcelona.jpg" },
-    { id: 3, ciudad: "París", pais: "Francia", fecha: "8 - 16 May 2023", rating: 4.0, img: "/assets/paris.jpg" },
-    { id: 4, ciudad: "Nueva York", pais: "Estados Unidos", fecha: "7 - 14 Mar 2023", rating: 4.7, img: "/assets/ny.jpg" },
-    { id: 5, ciudad: "Bali", pais: "Indonesia", fecha: "5 - 15 Dic 2022", rating: 4.3, img: "/assets/bali.jpg" },
-    { id: 6, ciudad: "Pekín", pais: "China", fecha: "22 - 29 Sep 2022", rating: 3.5, img: "/assets/beijing.jpg" },
-  ];
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.id) return;
+      try {
+        const fresh = await fetchUserDetails(user.id);
+        setUser(fresh);
+        try { localStorage.setItem("user", JSON.stringify(fresh)); } catch (_) {}
+        setForm({
+          nombre: fresh?.nombre || "",
+          email: fresh?.email || "",
+          pais: fresh?.pais || "",
+          idioma: fresh?.idioma || "Español",
+          moneda: fresh?.moneda_preferida || "USD - Dólar",
+        });
+      } catch (_) {
+        // si falla, usamos lo que ya teníamos
+        setForm({
+          nombre: user?.nombre || user?.name || "",
+          email: user?.email || "",
+          pais: user?.pais || "",
+          idioma: user?.idioma || "Español",
+          moneda: user?.moneda_preferida || "USD - Dólar",
+        });
+      }
+      try {
+        const trips = await fetchUserTrips(user.id);
+        setTripsState(trips);
+      } catch { setTripsState([]); }
+    };
+    load();
+  }, [user?.id]);
+
+  const trips = tripsState;
+  const countriesCount = useMemo(() => {
+    const s = new Set(trips.map(t => (t.destino_principal || t.pais || "").toString().trim()).filter(Boolean));
+    return s.size;
+  }, [trips]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      const payload = {
+        nombre: form.nombre,
+        email: form.email,
+        pais: form.pais,
+        idioma: form.idioma,
+        moneda_preferida: form.moneda,
+      };
+      const updated = await updateUser(user.id, payload);
+      setUser(updated);
+      try { localStorage.setItem("user", JSON.stringify(updated)); } catch (_) {}
+      setIsEditing(false);
+    } catch (err) {
+      alert(err.message || "No se pudo actualizar el perfil");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="tc-profile">
@@ -21,20 +83,24 @@ export default function Perfil() {
         <div className="tc-profile__user">
           <img className="tc-profile__avatar" src="/assets/avatar.png" alt="avatar" />
           <div>
-            <h2 className="tc-profile__name">Heraclito Canionni</h2>
+            <h2 className="tc-profile__name">{user?.nombre || user?.name || user?.email || "Usuario"}</h2>
             <div className="tc-profile__meta">
-              <span>heraclitocanionni@gmail.com</span>
-              <span className="tc-profile__dot">•</span>
-              <span>Buenos Aires, Argentina</span>
+              <span>{user?.email || ""}</span>
+              {user?.pais && <span className="tc-profile__dot">•</span>}
+              {user?.pais && <span>{user.pais}</span>}
             </div>
           </div>
         </div>
 
         <div className="tc-profile__actions">
-          <button className="tc-profile__edit">Editar Perfil</button>
+          {!isEditing ? (
+            <button className="tc-profile__edit" onClick={() => setIsEditing(true)}>Editar Perfil</button>
+          ) : (
+            <button className="tc-profile__edit" disabled={saving} onClick={handleSave}>{saving ? "Guardando..." : "Guardar"}</button>
+          )}
           <div className="tc-profile__stats">
-            <div><strong>24</strong><span>Viajes</span></div>
-            <div><strong>12</strong><span>Paises</span></div>
+            <div><strong>{trips.length}</strong><span>Viajes</span></div>
+            <div><strong>{countriesCount}</strong><span>Países</span></div>
           </div>
         </div>
       </div>
@@ -67,6 +133,9 @@ export default function Perfil() {
 
           {/* Grid */}
           <div className="tc-profile__grid">
+            {trips.length === 0 && (
+              <div className="tc-empty">Todavía no hay viajes para mostrar</div>
+            )}
             {trips.map((t) => (
               <article key={t.id} className="tc-card">
                 <div className="tc-card__media">
@@ -94,35 +163,40 @@ export default function Perfil() {
 
             <label className="tc-field">
               <span>Nombre completo</span>
-              <input type="text" defaultValue="Heraclito Canionni" />
+              <input name="nombre" type="text" value={form.nombre} onChange={handleChange} disabled={!isEditing} />
             </label>
 
             <label className="tc-field">
               <span>Correo electrónico</span>
-              <input type="email" defaultValue="heraclitocanionni@gmail.com" />
+              <input name="email" type="email" value={form.email} onChange={handleChange} disabled={!isEditing} />
             </label>
 
             <label className="tc-field">
               <span>Contraseña</span>
-              <input type="password" defaultValue="********" />
+              <input name="password" type="password" placeholder="••••••••" onChange={handleChange} disabled={!isEditing} />
             </label>
 
             <label className="tc-field">
               <span>Idioma</span>
-              <select defaultValue="Español">
-                <option>Español</option>
-                <option>English</option>
-                <option>Português</option>
+              <select name="idioma" value={form.idioma} onChange={handleChange} disabled={!isEditing}>
+                <option value="Español">Español</option>
+                <option value="English">English</option>
+                <option value="Português">Português</option>
               </select>
             </label>
 
             <label className="tc-field">
               <span>Moneda</span>
-              <select defaultValue="ARS - Peso Argentino">
-                <option>ARS - Peso Argentino</option>
-                <option>USD - Dólar</option>
-                <option>EUR - Euro</option>
+              <select name="moneda" value={form.moneda} onChange={handleChange} disabled={!isEditing}>
+                <option value="USD - Dólar">USD - Dólar</option>
+                <option value="ARS - Peso Argentino">ARS - Peso Argentino</option>
+                <option value="EUR - Euro">EUR - Euro</option>
               </select>
+            </label>
+
+            <label className="tc-field">
+              <span>País</span>
+              <input name="pais" type="text" value={form.pais} onChange={handleChange} disabled={!isEditing} />
             </label>
 
             <label className="tc-switch">
@@ -130,7 +204,7 @@ export default function Perfil() {
               <span>Notificaciones</span>
             </label>
 
-            <button className="tc-panel__save">Guardar cambios</button>
+            <button className="tc-panel__save" disabled={!isEditing || saving} onClick={handleSave}>{saving ? "Guardando..." : "Guardar cambios"}</button>
           </div>
         </aside>
       </div>

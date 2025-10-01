@@ -6,9 +6,18 @@ export default function UserProvider({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Cargamos desde 'user' si existe; si no, construimos a partir de 'usuario' (solo email)
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        return;
+      }
+    } catch (_) {}
+
+    const emailOnly = localStorage.getItem("usuario");
+    if (emailOnly) {
+      setUser({ email: emailOnly });
     }
   }, []);
 

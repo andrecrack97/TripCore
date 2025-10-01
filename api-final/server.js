@@ -16,5 +16,5 @@ app.use("/api/viajes", require("./routes/viajes"));    // ejemplo viajes
 // Salud
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-const PORT = process.env.PORT || 3005;
+const PORT = 3005;
 app.listen(PORT, () => console.log(`🚀 hola API en http://localhost:${PORT}`));

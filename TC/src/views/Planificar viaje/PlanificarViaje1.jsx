@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./PlanificarViaje.css";
 import { useNavigate } from "react-router-dom";
 
@@ -8,9 +8,20 @@ export default function PlanificarViaje1() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // Restaurar si el usuario vuelve atrás
+  useEffect(() => {
+    try {
+      const previo = JSON.parse(localStorage.getItem("planificarViaje")) || {};
+      if (previo.origen) setOrigen(previo.origen);
+      if (previo.destino) setDestino(previo.destino);
+    } catch (_) {}
+  }, []);
+
   const handleSiguiente = (e) => {
     e.preventDefault();
-    if (!origen || !destino) {
+    const origenTrim = origen.trim();
+    const destinoTrim = destino.trim();
+    if (!origenTrim || !destinoTrim) {
       setError("Por favor completá ambos campos");
       return;
     }
@@ -19,7 +30,7 @@ export default function PlanificarViaje1() {
     // Guardar en localStorage para el siguiente paso
     localStorage.setItem(
       "planificarViaje",
-      JSON.stringify({ origen, destino })
+      JSON.stringify({ origen: origenTrim, destino: destinoTrim })
     );
 
     navigate("/planificar/2");

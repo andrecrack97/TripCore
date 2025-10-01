@@ -1,0 +1,9 @@
+@echo off
+echo Iniciando frontend de TripCore...
+echo.
+echo Verificando dependencias...
+npm install
+echo.
+echo Iniciando aplicación React...
+npm run dev
+pause

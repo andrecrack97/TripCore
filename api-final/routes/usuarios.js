@@ -58,3 +58,63 @@ router.post("/registro", async (req, res) => {
 });
 
 module.exports = router;
+ 
+// Agrego endpoints para obtener y actualizar el usuario
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const r = await pool.query(
+      `SELECT id_usuario, nombre, email, pais, idioma, moneda_preferida
+         FROM public.usuarios
+        WHERE id_usuario = $1
+        LIMIT 1`,
+      [id]
+    );
+    if (r.rowCount === 0) return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+    return res.json({ success: true, user: r.rows[0] });
+  } catch (err) {
+    console.error("❌ GET /api/usuarios/:id error:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const nombre = (req.body.nombre ?? "").trim();
+    const email = (req.body.email ?? req.body.mail ?? "").trim().toLowerCase();
+    const pais = (req.body.pais ?? req.body.país ?? null) || null;
+    const idioma = (req.body.idioma ?? "es").trim() || "es";
+    const moneda = (req.body.moneda_preferida ?? req.body.moneda ?? "USD").trim() || "USD";
+    const plain = req.body.password ?? req.body.contraseña ?? req.body.contrasena;
+
+    // validar existencia
+    const exists = await pool.query(
+      `SELECT id_usuario FROM public.usuarios WHERE id_usuario = $1 LIMIT 1`,
+      [id]
+    );
+    if (exists.rowCount === 0) return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+
+    // construir UPDATE dinámico
+    const fields = ["nombre", "email", "pais", "idioma", "moneda_preferida"];
+    const values = [nombre, email, pais, idioma, moneda];
+    const sets = fields.map((f, i) => `${f} = $${i + 1}`);
+
+    let idx = values.length;
+    if (plain) {
+      const bcrypt = require("bcrypt");
+      const hash = await bcrypt.hash(String(plain), 10);
+      values.push(hash);
+      idx += 1;
+      sets.push(`password_hash = $${idx}`);
+    }
+    values.push(id);
+
+    const sql = `UPDATE public.usuarios SET ${sets.join(", ")} WHERE id_usuario = $${values.length} RETURNING id_usuario, nombre, email, pais, idioma, moneda_preferida`;
+    const upd = await pool.query(sql, values);
+    return res.json({ success: true, user: upd.rows[0], message: "Usuario actualizado" });
+  } catch (err) {
+    console.error("❌ PUT /api/usuarios/:id error:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});

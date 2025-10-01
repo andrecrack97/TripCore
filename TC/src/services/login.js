@@ -1,7 +1,7 @@
 // src/services/login.js
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch("http://localhost:5432/api/login", {
+    const response = await fetch("http://localhost:3005/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -15,7 +15,11 @@ export const loginUser = async (email, password) => {
 
     // Guardamos token o email
     if (data.token) localStorage.setItem("token", data.token);
+    // Persistimos tanto el email (compat) como el objeto usuario completo
     localStorage.setItem("usuario", data.user?.email || email);
+    try {
+      localStorage.setItem("user", JSON.stringify(data.user));
+    } catch (_) {}
 
     return { success: true, user: data.user };
   } catch (error) {

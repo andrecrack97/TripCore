@@ -95,4 +95,32 @@
     gap: 16px;
   }
   
+  /* Tabs */
+  .tc-profile__tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+  .tc-profile__tab { border: 0; background: #eef0ff; color: #494f7d; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+  .tc-profile__tab.is-active { background: #6b5cff; color: white; }
+
+  /* Grid */
+  .tc-profile__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .tc-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 16px rgba(31,35,65,.06); display: grid; }
+  .tc-card__media { position: relative; height: 130px; overflow: hidden; }
+  .tc-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tc-card__fav { position: absolute; right: 8px; top: 8px; border: 0; background: rgba(255,255,255,.8); border-radius: 999px; padding: 6px 8px; cursor: pointer; }
+  .tc-card__body { padding: 10px; display: grid; gap: 6px; }
+  .tc-card__title { font-weight: 700; }
+  .tc-card__subtitle { color: #6a6e8b; font-size: 12px; }
+  .tc-card__line { display: flex; justify-content: space-between; color: #6a6e8b; font-size: 12px; }
+  .tc-card__cta { margin-top: 4px; border: 0; background: #f1f0ff; color: #5a55d6; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+  .tc-empty { color: #6a6e8b; padding: 16px; text-align: center; }
+
+  /* Aside */
+  .tc-profile__aside { position: sticky; top: 16px; height: fit-content; }
+  .tc-panel { background: #fff; border-radius: 14px; box-shadow: 0 8px 20px rgba(31,35,65,.06); padding: 14px; display: grid; gap: 10px; }
+  .tc-panel__title { font-weight: 800; }
+  .tc-field { display: grid; gap: 6px; }
+  .tc-field input, .tc-field select { border: 1px solid #e7e8f5; border-radius: 10px; padding: 10px 12px; font-size: 14px; outline: none; }
+  .tc-field input:disabled, .tc-field select:disabled { background: #f6f7ff; color: #9aa0c2; }
+  .tc-switch { display: flex; align-items: center; gap: 8px; }
+  .tc-panel__save { border: 0; background: #6b5cff; color: #fff; padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .tc-panel__save:disabled { opacity: .5; cursor: not-allowed; }
  
