@@ -1,0 +1,82 @@
+.olvide { 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  padding: 32px 16px; 
+  background: linear-gradient(135deg, #b39dfa 0%, #c59df7 100%);
+}
+
+.olvide__card {
+  width: 100%;
+  max-width: 1100px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.olvide__title {
+  grid-column: 1 / -1;
+  color: #6c2cf1;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.olvide__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.olvide__input {
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 0 14px;
+  background: #f9fafb;
+  outline: none;
+}
+
+.olvide__input-wrap { position: relative; }
+.olvide__input-wrap .olvide__input { width: 100%; padding-right: 44px; }
+.olvide__eye {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 30px;
+  width: 34px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.olvide__btn {
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.olvide__error { color: #dc2626; }
+.olvide__ok { color: #16a34a; }
+
+.olvide__illustration {
+  background: radial-gradient(120px circle at 20% 30%, #e9d5ff, transparent 60%),
+              radial-gradient(150px circle at 80% 40%, #dbeafe, transparent 60%),
+              radial-gradient(120px circle at 60% 80%, #fee2e2, transparent 60%);
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .olvide__card { grid-template-columns: 1fr; }
+  .olvide__illustration { height: 220px; }
+}
+
+

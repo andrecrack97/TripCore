@@ -6,7 +6,7 @@ export function createAPI(baseUrl = import.meta.env.VITE_API_URL) {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        credentials: "include",
+        // No credentials to avoid CORS preflight rejection with wildcard origins
         body: body ? JSON.stringify(body) : undefined,
       });
       let data = null;
@@ -19,5 +19,14 @@ export function createAPI(baseUrl = import.meta.env.VITE_API_URL) {
       post: (p, body, o) => api(p, { ...o, method: "POST", body }),
       put: (p, body, o) => api(p, { ...o, method: "PUT", body }),
     };
+  }
+  
+  // Helper específico para auth/usuarios comunes desde el frontend
+  export const API = createAPI(import.meta.env.VITE_API_URL || "http://localhost:3005");
+  
+  // Servicio para restablecer contraseña
+  export async function resetPasswordByEmail({ email, password, confirmPassword }) {
+    // Enviamos confirmación solo para validar en el backend, nunca se persiste
+    return API.post("/api/usuarios/reset-password", { email, password, confirmPassword });
   }
   

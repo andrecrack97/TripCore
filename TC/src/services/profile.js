@@ -1,33 +1,48 @@
-// Servicios de perfil y viajes
+// Servicios de perfil y viajes (con Bearer token)
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
 
-export async function fetchUserTrips(userId) {
-  const res = await fetch(`${BASE}/api/viajes`);
-  const data = await res.json();
-  if (!Array.isArray(data)) return [];
-  return data.filter(v => String(v.id_usuario) === String(userId));
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
-export async function fetchUserDetails(userId) {
-  const res = await fetch(`${BASE}/api/usuarios/${userId}`);
-  const data = await res.json();
-  if (!res.ok || !data?.success) {
-    throw new Error(data?.message || `Error ${res.status}`);
-  }
-  return data.user;
-}
-
-export async function updateUser(userId, payload) {
-  const res = await fetch(`${BASE}/api/usuarios/${userId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
+export async function fetchUserTrips(tab = "history", page = 1, pageSize = 10) {
+  const res = await fetch(`${BASE}/api/viajes?tab=${tab}&page=${page}&pageSize=${pageSize}`, {
+    headers: authHeaders(),
   });
   const data = await res.json();
-  if (!res.ok || !data?.success) {
-    throw new Error(data?.message || `Error ${res.status}`);
-  }
+  if (!res.ok) throw new Error(data?.message || `Error ${res.status}`);
+  return Array.isArray(data?.items) ? data.items : [];
+}
+
+export async function fetchMe() {
+  const res = await fetch(`${BASE}/api/usuarios/me`, { headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok || !data?.success) throw new Error(data?.message || `Error ${res.status}`);
   return data.user;
 }
 
+export async function updateMe(payload) {
+  const res = await fetch(`${BASE}/api/usuarios/me`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || !data?.success) throw new Error(data?.message || `Error ${res.status}`);
+  return data.user;
+}
+
+export async function toggleFavoriteTrip(id) {
+  const res = await fetch(`${BASE}/api/viajes/${id}/favorite`, {
+    method: "PATCH",
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.message || `Error ${res.status}`);
+  return data;
+}
 

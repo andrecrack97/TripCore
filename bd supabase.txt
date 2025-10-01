@@ -1,0 +1,123 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.actividades (
+  id_actividad integer NOT NULL DEFAULT nextval('actividades_id_actividad_seq'::regclass),
+  id_viaje integer NOT NULL,
+  nombre character varying,
+  descripcion text,
+  precio numeric,
+  categoria character varying,
+  fecha date,
+  ubicacion character varying,
+  CONSTRAINT actividades_pkey PRIMARY KEY (id_actividad),
+  CONSTRAINT actividades_id_viaje_fkey FOREIGN KEY (id_viaje) REFERENCES public.viajes(id_viaje)
+);
+CREATE TABLE public.alojamientos (
+  id_alojamiento integer NOT NULL DEFAULT nextval('alojamientos_id_alojamiento_seq'::regclass),
+  id_viaje integer NOT NULL,
+  nombre character varying,
+  proveedor character varying,
+  precio_por_noche numeric,
+  tipo character varying,
+  link_externo text,
+  ubicacion character varying,
+  fecha_checkin date,
+  fecha_checkout date,
+  CONSTRAINT alojamientos_pkey PRIMARY KEY (id_alojamiento),
+  CONSTRAINT alojamientos_id_viaje_fkey FOREIGN KEY (id_viaje) REFERENCES public.viajes(id_viaje)
+);
+CREATE TABLE public.calendario_eventos (
+  id_evento integer NOT NULL DEFAULT nextval('calendario_eventos_id_evento_seq'::regclass),
+  id_viaje integer NOT NULL,
+  tipo character varying,
+  nombre character varying,
+  fecha date,
+  hora time without time zone,
+  ubicacion character varying,
+  CONSTRAINT calendario_eventos_pkey PRIMARY KEY (id_evento),
+  CONSTRAINT calendario_eventos_id_viaje_fkey FOREIGN KEY (id_viaje) REFERENCES public.viajes(id_viaje)
+);
+CREATE TABLE public.chat_soporte (
+  id_chat integer NOT NULL DEFAULT nextval('chat_soporte_id_chat_seq'::regclass),
+  id_usuario integer NOT NULL,
+  tipo_soporte character varying,
+  mensaje_usuario text,
+  respuesta_soporte text,
+  fecha timestamp without time zone DEFAULT now(),
+  CONSTRAINT chat_soporte_pkey PRIMARY KEY (id_chat),
+  CONSTRAINT chat_soporte_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id_usuario)
+);
+CREATE TABLE public.checklist_valija (
+  id_valija integer NOT NULL DEFAULT nextval('checklist_valija_id_valija_seq'::regclass),
+  id_viaje integer NOT NULL,
+  item character varying,
+  marcado boolean DEFAULT false,
+  CONSTRAINT checklist_valija_pkey PRIMARY KEY (id_valija),
+  CONSTRAINT checklist_valija_id_viaje_fkey FOREIGN KEY (id_viaje) REFERENCES public.viajes(id_viaje)
+);
+CREATE TABLE public.favoritos (
+  id_favorito integer NOT NULL DEFAULT nextval('favoritos_id_favorito_seq'::regclass),
+  id_usuario integer NOT NULL,
+  tipo_elemento character varying,
+  id_elemento integer,
+  CONSTRAINT favoritos_pkey PRIMARY KEY (id_favorito),
+  CONSTRAINT favoritos_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id_usuario)
+);
+CREATE TABLE public.presupuestos (
+  id_presupuesto integer NOT NULL DEFAULT nextval('presupuestos_id_presupuesto_seq'::regclass),
+  id_viaje integer NOT NULL,
+  transporte_pct numeric,
+  alojamiento_pct numeric,
+  actividades_pct numeric,
+  otros_pct numeric,
+  CONSTRAINT presupuestos_pkey PRIMARY KEY (id_presupuesto),
+  CONSTRAINT presupuestos_id_viaje_fkey FOREIGN KEY (id_viaje) REFERENCES public.viajes(id_viaje)
+);
+CREATE TABLE public.reseñas (
+  id_reseña integer NOT NULL DEFAULT nextval('"reseñas_id_reseña_seq"'::regclass),
+  id_usuario integer NOT NULL,
+  tipo_reseña character varying NOT NULL,
+  id_elemento integer NOT NULL,
+  texto text,
+  calificacion integer CHECK (calificacion >= 1 AND calificacion <= 5),
+  fecha timestamp without time zone DEFAULT now(),
+  CONSTRAINT reseñas_pkey PRIMARY KEY (id_reseña),
+  CONSTRAINT reseñas_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id_usuario)
+);
+CREATE TABLE public.transportes (
+  id_transporte integer NOT NULL DEFAULT nextval('transportes_id_transporte_seq'::regclass),
+  id_viaje integer NOT NULL,
+  tipo character varying,
+  origen character varying,
+  destino character varying,
+  fecha_salida timestamp without time zone,
+  fecha_llegada timestamp without time zone,
+  proveedor character varying,
+  precio numeric,
+  CONSTRAINT transportes_pkey PRIMARY KEY (id_transporte),
+  CONSTRAINT transportes_id_viaje_fkey FOREIGN KEY (id_viaje) REFERENCES public.viajes(id_viaje)
+);
+CREATE TABLE public.usuarios (
+  id_usuario integer NOT NULL DEFAULT nextval('usuarios_id_usuario_seq'::regclass),
+  nombre character varying,
+  email character varying NOT NULL UNIQUE,
+  password_hash character varying NOT NULL,
+  idioma character varying,
+  moneda_preferida character varying,
+  rol character varying DEFAULT 'turista'::character varying,
+  pais character varying,
+  CONSTRAINT usuarios_pkey PRIMARY KEY (id_usuario)
+);
+CREATE TABLE public.viajes (
+  id_viaje integer NOT NULL DEFAULT nextval('viajes_id_viaje_seq'::regclass),
+  id_usuario integer NOT NULL,
+  nombre_viaje character varying,
+  fecha_inicio date,
+  fecha_fin date,
+  destino_principal character varying,
+  tipo_viaje character varying,
+  presupuesto_total numeric,
+  CONSTRAINT viajes_pkey PRIMARY KEY (id_viaje),
+  CONSTRAINT viajes_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES public.usuarios(id_usuario)
+);

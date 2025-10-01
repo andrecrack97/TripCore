@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 // Aliases por si viene "mail", "contraseña", etc.
 const getEmail = (body = {}) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
@@ -115,6 +116,100 @@ router.put("/:id", async (req, res) => {
     return res.json({ success: true, user: upd.rows[0], message: "Usuario actualizado" });
   } catch (err) {
     console.error("❌ PUT /api/usuarios/:id error:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// Auth middle simple para este router
+function auth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ success: false, message: "No autorizado" });
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    req.userId = payload.sub;
+    next();
+  } catch (_) {
+    return res.status(401).json({ success: false, message: "Token inválido" });
+  }
+}
+
+// GET /api/me
+router.get("/me", auth, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT id_usuario, nombre as fullName, email, pais as location, idioma as language, moneda_preferida as currency
+         FROM public.usuarios WHERE id_usuario = $1 LIMIT 1`,
+      [req.userId]
+    );
+    if (r.rowCount === 0) return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+    return res.json({ success: true, user: r.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// PUT /api/me
+router.put("/me", auth, async (req, res) => {
+  try {
+    const nombre = (req.body.fullName ?? req.body.nombre ?? "").trim();
+    const email = (req.body.email ?? "").trim().toLowerCase();
+    const idioma = req.body.language ?? req.body.idioma ?? "es";
+    const moneda = req.body.currency ?? req.body.moneda_preferida ?? "USD";
+    const notifs = req.body.notifications ?? null; // fuera de alcance por ahora
+    const plain = req.body.password ?? null;
+
+    const fields = ["nombre", "email", "idioma", "moneda_preferida"];
+    const values = [nombre, email, idioma, moneda];
+    const sets = fields.map((f, i) => `${f} = $${i + 1}`);
+    let idx = values.length;
+    if (plain) {
+      const hash = await bcrypt.hash(String(plain), 10);
+      values.push(hash);
+      idx += 1;
+      sets.push(`password_hash = $${idx}`);
+    }
+    values.push(req.userId);
+    const sql = `UPDATE public.usuarios SET ${sets.join(", ")} WHERE id_usuario = $${values.length} RETURNING id_usuario, nombre, email, idioma, moneda_preferida`;
+    const upd = await pool.query(sql, values);
+    return res.json({ success: true, user: upd.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// POST /api/usuarios/reset-password
+// Body: { email, password, confirmPassword }
+router.post("/reset-password", async (req, res) => {
+  try {
+    const email = getEmail(req.body);
+    const plain = getPassword(req.body);
+    const confirm = getPasswordConfirm(req.body);
+
+    if (!email || !plain) {
+      return res.status(400).json({ success: false, message: "Email y nueva contraseña son obligatorios" });
+    }
+    if (confirm !== null && String(plain) !== String(confirm)) {
+      return res.status(400).json({ success: false, message: "Las contraseñas no coinciden" });
+    }
+
+    const userQ = await pool.query(
+      `SELECT id_usuario FROM public.usuarios WHERE email = $1 LIMIT 1`,
+      [email]
+    );
+    if (userQ.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "No existe un usuario con ese correo" });
+    }
+
+    const hash = await bcrypt.hash(String(plain), 10);
+    await pool.query(
+      `UPDATE public.usuarios SET password_hash = $1 WHERE email = $2`,
+      [hash, email]
+    );
+
+    return res.json({ success: true, message: "Contraseña restablecida correctamente" });
+  } catch (err) {
+    console.error("❌ POST /api/usuarios/reset-password error:", err);
     return res.status(500).json({ success: false, message: "Error del servidor" });
   }
 });

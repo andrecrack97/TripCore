@@ -58,7 +58,7 @@ export default function Login() {
 
           {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <a href="#" className="link">
+          <a href="/olvide" className="link">
             ¿Olvidaste tu contraseña?
           </a>
           <a href="/Registro" className="link">

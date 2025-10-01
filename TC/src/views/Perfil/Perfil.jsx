@@ -1,47 +1,52 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Perfil.css";
 import { UserContext } from "../../context/UserContext.jsx";
-import { fetchUserTrips, updateUser, fetchUserDetails } from "../../services/profile.js";
+import { fetchUserTrips, updateMe, fetchMe, toggleFavoriteTrip } from "../../services/profile.js";
 
 export default function Perfil() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("historial");
   const { user, setUser } = useContext(UserContext);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ nombre: "", email: "", idioma: "Español", moneda: "USD - Dólar", pais: "" });
+  const [form, setForm] = useState({ nombre: "", email: "", idioma: "Español", moneda: "USD - Dólar", pais: "", password: "", notificaciones: true });
   const [tripsState, setTripsState] = useState([]);
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      if (!user?.id) return;
       try {
-        const fresh = await fetchUserDetails(user.id);
-        setUser(fresh);
-        try { localStorage.setItem("user", JSON.stringify(fresh)); } catch (_) {}
+        const me = await fetchMe();
+        // map a la forma previa
+        const normalized = {
+          id: me.id_usuario || me.id || me.idUsuario || me.id_usuario,
+          nombre: me.fullName || me.nombre || "",
+          email: me.email || "",
+          pais: (me.locationCity && me.locationCountry) ? `${me.locationCity}, ${me.locationCountry}` : (me.locationCountry || me.pais || ""),
+          idioma: me.language || me.idioma || "Español",
+          moneda_preferida: me.currency || me.moneda_preferida || "USD",
+          tripsCount: me.tripsCount || 0,
+          countriesCount: me.countriesCount || 0,
+        };
+        setUser(normalized);
+        try { localStorage.setItem("user", JSON.stringify(normalized)); } catch (_) {}
         setForm({
-          nombre: fresh?.nombre || "",
-          email: fresh?.email || "",
-          pais: fresh?.pais || "",
-          idioma: fresh?.idioma || "Español",
-          moneda: fresh?.moneda_preferida || "USD - Dólar",
+          nombre: normalized.nombre,
+          email: normalized.email,
+          pais: normalized.pais,
+          idioma: normalized.idioma,
+          moneda: normalized.moneda_preferida,
+          notificaciones: me.notifications ?? true,
         });
-      } catch (_) {
-        // si falla, usamos lo que ya teníamos
-        setForm({
-          nombre: user?.nombre || user?.name || "",
-          email: user?.email || "",
-          pais: user?.pais || "",
-          idioma: user?.idioma || "Español",
-          moneda: user?.moneda_preferida || "USD - Dólar",
-        });
-      }
+      } catch (_) {}
       try {
-        const trips = await fetchUserTrips(user.id);
+        const trips = await fetchUserTrips("history", 1, 12);
         setTripsState(trips);
       } catch { setTripsState([]); }
     };
     load();
-  }, [user?.id]);
+  }, []);
 
   const trips = tripsState;
   const countriesCount = useMemo(() => {
@@ -54,20 +59,37 @@ export default function Perfil() {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleLogout = () => {
+    try { localStorage.removeItem("token"); } catch (_) {}
+    try { localStorage.removeItem("user"); } catch (_) {}
+    try { localStorage.removeItem("usuario"); } catch (_) {}
+    setUser(null);
+    navigate("/login");
+  };
+
   const handleSave = async () => {
-    if (!user?.id) return;
     setSaving(true);
     try {
       const payload = {
-        nombre: form.nombre,
+        fullName: form.nombre,
         email: form.email,
-        pais: form.pais,
-        idioma: form.idioma,
-        moneda_preferida: form.moneda,
+        language: form.idioma,
+        currency: form.moneda,
+        password: form.password || undefined,
+        notifications: form.notificaciones,
+        // password: opcional -> si agregás un campo de password aquí
       };
-      const updated = await updateUser(user.id, payload);
-      setUser(updated);
-      try { localStorage.setItem("user", JSON.stringify(updated)); } catch (_) {}
+      const updated = await updateMe(payload);
+      const normalized = {
+        id: updated.id_usuario || updated.id,
+        nombre: updated.nombre || updated.fullName,
+        email: updated.email,
+        pais: updated.pais || user?.pais || "",
+        idioma: updated.idioma || updated.language,
+        moneda_preferida: updated.moneda_preferida || updated.currency,
+      };
+      setUser(normalized);
+      try { localStorage.setItem("user", JSON.stringify(normalized)); } catch (_) {}
       setIsEditing(false);
     } catch (err) {
       alert(err.message || "No se pudo actualizar el perfil");
@@ -80,12 +102,12 @@ export default function Perfil() {
     <div className="tc-profile">
       {/* Header */}
       <div className="tc-profile__header">
-        <div className="tc-profile__user">
+            <div className="tc-profile__user">
           <img className="tc-profile__avatar" src="/assets/avatar.png" alt="avatar" />
           <div>
             <h2 className="tc-profile__name">{user?.nombre || user?.name || user?.email || "Usuario"}</h2>
             <div className="tc-profile__meta">
-              <span>{user?.email || ""}</span>
+                  <span>{user?.email || ""}</span>
               {user?.pais && <span className="tc-profile__dot">•</span>}
               {user?.pais && <span>{user.pais}</span>}
             </div>
@@ -98,9 +120,10 @@ export default function Perfil() {
           ) : (
             <button className="tc-profile__edit" disabled={saving} onClick={handleSave}>{saving ? "Guardando..." : "Guardar"}</button>
           )}
-          <div className="tc-profile__stats">
-            <div><strong>{trips.length}</strong><span>Viajes</span></div>
-            <div><strong>{countriesCount}</strong><span>Países</span></div>
+          <button className="tc-profile__edit" onClick={handleLogout} style={{ background: '#eef0ff', color: '#494f7d' }}>Cerrar sesión</button>
+            <div className="tc-profile__stats">
+            <div><strong>{user?.tripsCount ?? trips.length}</strong><span>Viajes</span></div>
+            <div><strong>{user?.countriesCount ?? countriesCount}</strong><span>Países</span></div>
           </div>
         </div>
       </div>
@@ -139,15 +162,15 @@ export default function Perfil() {
             {trips.map((t) => (
               <article key={t.id} className="tc-card">
                 <div className="tc-card__media">
-                  <img src={t.img} alt={t.ciudad} />
-                  <button className="tc-card__fav" aria-label="favorito">♡</button>
+                  <img src={t.img || "/assets/miami.avif"} alt={t.ciudad} />
+                  <button className="tc-card__fav" aria-label="favorito" onClick={() => toggleFavoriteTrip(t.id)}>♡</button>
                 </div>
                 <div className="tc-card__body">
                   <div className="tc-card__title">{t.ciudad}</div>
                   <div className="tc-card__subtitle">{t.pais}</div>
                   <div className="tc-card__line">
-                    <span className="tc-card__date">{t.fecha}</span>
-                    <span className="tc-card__rating">★ {t.rating.toFixed(1)}</span>
+                    <span className="tc-card__date">{t.fecha || `${t.fecha_inicio || ""} - ${t.fecha_fin || ""}`}</span>
+                    <span className="tc-card__rating">★ {(t.rating || 4.6).toFixed ? (t.rating || 4.6).toFixed(1) : 4.6}</span>
                   </div>
                   <button className="tc-card__cta">Ver detalles</button>
                 </div>
@@ -173,7 +196,10 @@ export default function Perfil() {
 
             <label className="tc-field">
               <span>Contraseña</span>
-              <input name="password" type="password" placeholder="••••••••" onChange={handleChange} disabled={!isEditing} />
+              <div style={{ position: 'relative' }}>
+                <input name="password" type={showPass ? 'text' : 'password'} placeholder="••••••••" value={form.password} onChange={handleChange} disabled={!isEditing} />
+                <button type="button" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 10, top: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}> {showPass ? '🙈' : '👁️'} </button>
+              </div>
             </label>
 
             <label className="tc-field">
@@ -200,7 +226,7 @@ export default function Perfil() {
             </label>
 
             <label className="tc-switch">
-              <input type="checkbox" defaultChecked />
+              <input type="checkbox" checked={!!form.notificaciones} onChange={(e) => setForm(prev => ({ ...prev, notificaciones: e.target.checked }))} disabled={!isEditing} />
               <span>Notificaciones</span>
             </label>
 

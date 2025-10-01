@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(express.json()); // <-- clave para que req.body NO sea undefined
 app.use("/api", require("./routes/auth"));            // /api/register - /api/login
 app.use("/api/usuarios", require("./routes/usuarios"));// /api/usuarios/registro
 app.use("/api/viajes", require("./routes/viajes"));    // ejemplo viajes
+app.use("/api/me", require("./routes/me"));             // me endpoints compactos
 
 // Salud
 app.get("/health", (_req, res) => res.json({ ok: true }));

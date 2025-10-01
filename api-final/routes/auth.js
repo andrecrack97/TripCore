@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 // Normaliza email (acepta "email" o "mail")
 const getEmail = (body = {}) => String(body.email ?? body.mail ?? "").trim().toLowerCase();
@@ -83,9 +84,16 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ success: false, message: "Usuario o contraseña incorrectos" });
     }
 
+    const token = jwt.sign(
+      { sub: user.id_usuario, email: user.email },
+      process.env.JWT_SECRET || "dev_secret",
+      { expiresIn: "7d" }
+    );
+
     return res.json({
       success: true,
       message: "Inicio de sesión exitoso",
+      token,
       user: { id: user.id_usuario, nombre: user.nombre, email: user.email },
     });
   } catch (err) {
