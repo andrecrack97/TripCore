@@ -26,7 +26,17 @@ router.get("/", auth, async (req, res) => {
 
     // Simplificación: devolvemos todos los viajes del usuario y simulamos tabs
     const { rows } = await pool.query(
-      `SELECT id_viaje as id, id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal as ciudad, 'Argentina' as pais, 4.6 as rating
+      `SELECT 
+         id_viaje AS id,
+         id_usuario,
+         nombre_viaje AS titulo,
+         fecha_inicio,
+         fecha_fin,
+         destino_principal AS destino,
+         destino_principal AS ciudad,
+         NULL::text AS pais,
+         presupuesto_total AS presupuesto,
+         4.6 AS rating
          FROM viajes
         WHERE id_usuario = $1
         ORDER BY id_viaje DESC

@@ -20,3 +20,8 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const PORT = 3005;
 app.listen(PORT, () => console.log(`🚀 hola API en http://localhost:${PORT}`));
+
+
+const destinosGeo = require('./routes/destinosGEO');
+app.use('/api/destinos/geo', destinosGeo);
+

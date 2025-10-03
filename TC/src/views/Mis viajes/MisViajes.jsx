@@ -93,8 +93,8 @@ export default function MisViajes() {
     // orden: primero en curso, luego próximos, luego completados, cada grupo por fecha inicio asc
     const rank = { ongoing: 0, upcoming: 1, completed: 2 };
     return filtered.sort((a, b) => {
-      const sa = rank[getStatus(a.fecha_inicio, a.fecha_fin)];
-      const sb = rank[getStatus(b.fecha_inicio, b.fecha_fin)];
+      const sa = rank[getStatus(a.fecha_inicio, a.fecha_fin)] ?? 1;
+      const sb = rank[getStatus(b.fecha_inicio, b.fecha_fin)] ?? 1;
       if (sa !== sb) return sa - sb;
       return new Date(a.fecha_inicio) - new Date(b.fecha_inicio);
     });
@@ -261,12 +261,14 @@ const safeJson = async (res) => {
 
 function normalizeTrip(t) {
   // Ajustá las claves a tu modelo de DB/API
+  const ciudad = t.ciudad || t.destino || t.destino_principal || null;
+  const destino = t.destino || ciudad;
   return {
     id: t.id_viaje ?? t.id,
-    titulo: t.titulo ?? t.nombre ?? null,
-    destino: t.destino ?? null,
-    ciudad: t.ciudad ?? (t.lugar?.ciudad ?? null),
-    pais: t.pais ?? (t.lugar?.pais ?? null),
+    titulo: t.titulo ?? t.nombre_viaje ?? t.nombre ?? null,
+    destino,
+    ciudad,
+    pais: t.pais ?? null,
     fecha_inicio: t.fecha_inicio ?? t.inicio ?? t.startDate,
     fecha_fin: t.fecha_fin ?? t.fin ?? t.endDate,
     portada_url:

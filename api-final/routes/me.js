@@ -27,8 +27,8 @@ router.get("/", auth, async (req, res) => {
     );
     if (r.rowCount === 0) return res.status(404).json({ success: false, message: "Usuario no encontrado" });
 
-    const tripsCountQ = await pool.query(`SELECT COUNT(*)::int AS c FROM viajes WHERE id_usuario = $1`, [req.userId]);
-    const countriesCountQ = await pool.query(`SELECT COUNT(DISTINCT destino_principal)::int AS c FROM viajes WHERE id_usuario = $1`, [req.userId]);
+    const tripsCountQ = await pool.query(`SELECT COUNT(*)::int AS c FROM public.viajes WHERE id_usuario = $1`, [req.userId]);
+    const countriesCountQ = await pool.query(`SELECT COUNT(DISTINCT destino_principal)::int AS c FROM public.viajes WHERE id_usuario = $1`, [req.userId]);
 
     const user = r.rows[0];
     user.tripsCount = tripsCountQ.rows[0].c;
@@ -47,10 +47,11 @@ router.put("/", auth, async (req, res) => {
     const email = (req.body.email ?? "").trim().toLowerCase();
     const idioma = req.body.language ?? "es";
     const moneda = req.body.currency ?? "USD";
+    const pais = (req.body.country ?? req.body.pais ?? "").trim() || null;
     const plain = req.body.password ?? null;
 
-    const fields = ["nombre", "email", "idioma", "moneda_preferida"];
-    const values = [nombre, email, idioma, moneda];
+    const fields = ["nombre", "email", "idioma", "moneda_preferida", "pais"];
+    const values = [nombre, email, idioma, moneda, pais];
     const sets = fields.map((f, i) => `${f} = $${i + 1}`);
     let idx = values.length;
     if (plain) {
@@ -60,7 +61,7 @@ router.put("/", auth, async (req, res) => {
       sets.push(`password_hash = $${idx}`);
     }
     values.push(req.userId);
-    const sql = `UPDATE public.usuarios SET ${sets.join(", ")} WHERE id_usuario = $${values.length} RETURNING id_usuario as id, nombre as fullName, email, idioma as language, moneda_preferida as currency`;
+    const sql = `UPDATE public.usuarios SET ${sets.join(", ")} WHERE id_usuario = $${values.length} RETURNING id_usuario as id, nombre as fullName, email, idioma as language, moneda_preferida as currency, pais`;
     const upd = await pool.query(sql, values);
     return res.json(upd.rows[0]);
   } catch (err) {

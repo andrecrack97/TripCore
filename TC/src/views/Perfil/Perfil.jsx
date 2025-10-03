@@ -22,10 +22,10 @@ export default function Perfil() {
         const me = await fetchMe();
         // map a la forma previa
         const normalized = {
-          id: me.id_usuario || me.id || me.idUsuario || me.id_usuario,
+          id: me.id || me.id_usuario || me.idUsuario,
           nombre: me.fullName || me.nombre || "",
           email: me.email || "",
-          pais: (me.locationCity && me.locationCountry) ? `${me.locationCity}, ${me.locationCountry}` : (me.locationCountry || me.pais || ""),
+          pais: me.pais || me.locationCountry || "",
           idioma: me.language || me.idioma || "Español",
           moneda_preferida: me.currency || me.moneda_preferida || "USD",
           tripsCount: me.tripsCount || 0,
@@ -50,7 +50,22 @@ export default function Perfil() {
     load();
   }, []);
 
-  const trips = tripsState;
+  const normalizeTrip = (t) => {
+    const ciudad = t.ciudad || t.destino || t.destino_principal || null;
+    const destino = t.destino || ciudad;
+    return {
+      id: t.id_viaje ?? t.id,
+      titulo: t.titulo ?? t.nombre_viaje ?? t.nombre ?? destino ?? "Viaje",
+      ciudad,
+      pais: t.pais || null,
+      destino,
+      fecha_inicio: t.fecha_inicio ?? t.inicio ?? t.startDate,
+      fecha_fin: t.fecha_fin ?? t.fin ?? t.endDate,
+      img: t.portada_url || t.imagen || t.coverUrl || null,
+      rating: t.rating || 4.6,
+    };
+  };
+  const trips = tripsState.map(normalizeTrip);
   const countriesCount = useMemo(() => {
     const s = new Set(trips.map(t => (t.destino_principal || t.pais || "").toString().trim()).filter(Boolean));
     return s.size;
@@ -77,18 +92,18 @@ export default function Perfil() {
         email: form.email,
         language: form.idioma,
         currency: form.moneda,
+        country: form.pais,
         password: form.password || undefined,
         notifications: form.notificaciones,
-        // password: opcional -> si agregás un campo de password aquí
       };
       const updated = await updateMe(payload);
       const normalized = {
-        id: updated.id_usuario || updated.id,
-        nombre: updated.nombre || updated.fullName,
+        id: updated.id || updated.id_usuario,
+        nombre: updated.fullName || updated.nombre,
         email: updated.email,
-        pais: updated.pais || user?.pais || "",
-        idioma: updated.idioma || updated.language,
-        moneda_preferida: updated.moneda_preferida || updated.currency,
+        pais: updated.pais || "",
+        idioma: updated.language || updated.idioma,
+        moneda_preferida: updated.currency || updated.moneda_preferida,
       };
       setUser(normalized);
       try { localStorage.setItem("user", JSON.stringify(normalized)); } catch (_) {}
@@ -164,14 +179,14 @@ export default function Perfil() {
             {trips.map((t) => (
               <article key={t.id} className="tc-card">
                 <div className="tc-card__media">
-                  <img src={t.img || "/assets/miami.avif"} alt={t.ciudad} />
+                  <img src={t.img || "/assets/miami.avif"} alt={t.ciudad || t.destino || t.titulo} />
                   <button className="tc-card__fav" aria-label="favorito" onClick={() => toggleFavoriteTrip(t.id)}>♡</button>
                 </div>
                 <div className="tc-card__body">
-                  <div className="tc-card__title">{t.ciudad}</div>
-                  <div className="tc-card__subtitle">{t.pais}</div>
+                  <div className="tc-card__title">{t.titulo || t.ciudad || t.destino}</div>
+                  <div className="tc-card__subtitle">{t.pais || t.destino || ""}</div>
                   <div className="tc-card__line">
-                    <span className="tc-card__date">{t.fecha || `${t.fecha_inicio || ""} - ${t.fecha_fin || ""}`}</span>
+                    <span className="tc-card__date">{formatRange(t.fecha_inicio, t.fecha_fin)}</span>
                     <span className="tc-card__rating">★ {(t.rating || 4.6).toFixed ? (t.rating || 4.6).toFixed(1) : 4.6}</span>
                   </div>
                   <button className="tc-card__cta">Ver detalles</button>
@@ -243,4 +258,12 @@ export default function Perfil() {
       </div>
     </div>
   );
+}
+
+function formatRange(from, to) {
+  if (!from || !to) return `${from || ''} ${to ? ' - ' + to : ''}`.trim();
+  try {
+    const fmt = (iso) => new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return `${fmt(from)} - ${fmt(to)}`;
+  } catch { return `${from} - ${to}`; }
 }
