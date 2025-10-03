@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./MisViajes.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
@@ -38,7 +38,9 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function MisViajes() {
-  const { token, user } = useAuth?.() ?? { token: null, user: null };
+  // Fallback sencillo para token/user sin contexto
+  const token = (() => { try { return localStorage.getItem("token"); } catch { return null; } })();
+  const user = (() => { try { return JSON.parse(localStorage.getItem("user")||"null"); } catch { return null; } })();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,19 +54,19 @@ export default function MisViajes() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/api/viajes/mis-viajes`, {
+        const res = await fetch(`${API_BASE}/api/viajes`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          credentials: "include", // por si usás cookies
+          credentials: "omit",
         });
         if (!res.ok) {
           const data = await safeJson(res);
           throw new Error(data?.message || `Error ${res.status}`);
         }
         const data = await res.json();
-        if (mounted) setTrips(Array.isArray(data) ? data : data?.viajes ?? []);
+        if (mounted) setTrips(Array.isArray(data?.items) ? data.items : (Array.isArray(data)? data : []));
       } catch (err) {
         if (mounted) setError(err.message);
       } finally {

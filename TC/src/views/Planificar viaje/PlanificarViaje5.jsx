@@ -14,11 +14,11 @@ const transportSugeridoDemo = {
   tipo: "Vuelo ida y vuelta",
   ruta: "Trayecto",
   fecha: "",
-  duracion: "",
+  duracion: "10h 30m",
   equipaje: "1 valija + 1 carry on",
   co2: "Baja",
   precio: 0,
-  proveedor: "",
+  proveedor: "AirDemo",
   link: "#",
 };
 
@@ -142,7 +142,7 @@ export default function PlanificarViaje5() {
             duracion: t.duracion || "",
             equipaje: t.equipaje || "",
             co2: t.co2 || "",
-            precio: Number(t.precio) || 0,
+            precio: Math.max(Number(t.precio) || 0, 150),
             proveedor: t.proveedor || "",
             link: "#",
           });
@@ -152,7 +152,7 @@ export default function PlanificarViaje5() {
             ...transportSugeridoDemo,
             ruta: `${current.origen || ""} → ${current.destino || ""}`.trim(),
             fecha: `${fmtDate(current.fecha_salida)} al ${fmtDate(current.fecha_vuelta)}`,
-            precio: Math.max(Math.round((Number(current.presupuesto) || 0) * 0.35), 0),
+            precio: Math.max(Math.round((Number(current.presupuesto) || 0) * 0.35), 250),
           });
         }
         if (Array.isArray(data?.alojamientos) && data.alojamientos.length > 0) {
@@ -218,18 +218,28 @@ export default function PlanificarViaje5() {
   const handleSaveAndGoHome = async () => {
     setSaving(true);
     try {
-      // Pegá tu endpoint real aquí:
-      await fetch("http://localhost:3001/api/viajes", {
+      const BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
+      const token = localStorage.getItem("token");
+      let userId = null;
+      try {
+        const u = JSON.parse(localStorage.getItem("user") || "null");
+        userId = u?.id || u?.id_usuario || null;
+      } catch(_) {}
+      // Nombre del viaje: "Destino (YYYY-MM)"
+      const ymd = (prefs.fecha_salida || "").slice(0,7) || new Date().toISOString().slice(0,7);
+      const nombreViaje = `${prefs.destino || "Viaje"} (${ymd})`;
+
+      await fetch(`${BASE}/api/viajes/planificar`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
-          destino: tripSummary.destino,
-          fecha_inicio: tripSummary.fechas.desde,
-          fecha_fin: tripSummary.fechas.hasta,
-          presupuesto: tripSummary.presupuesto,
-          transporte: selectedTransport,
-          hospedaje: selectedStay,
-          actividades: actividades.filter(a => selectedActs.includes(a.id)),
+          id_usuario: userId,
+          nombre_viaje: nombreViaje,
+          fecha_inicio: prefs.fecha_salida || tripSummary.fechas.desde,
+          fecha_fin: prefs.fecha_vuelta || tripSummary.fechas.hasta,
         }),
       });
     } catch (err) {
@@ -240,7 +250,7 @@ export default function PlanificarViaje5() {
     }
 
     // Ir al index mostrando confirmación
-    navigate("/", { state: { viajeGuardado: true } });
+    navigate("/MisViajes", { state: { viajeGuardado: true } });
   };
 
   return (
