@@ -123,4 +123,14 @@
   .tc-switch { display: flex; align-items: center; gap: 8px; }
   .tc-panel__save { border: 0; background: #6b5cff; color: #fff; padding: 10px 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
   .tc-panel__save:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Alinear icono ojo dentro del campo contraseña */
+.input-con-icono { position: relative; }
+.input-con-icono .icono-ojo {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6a6e8b;
+}
  

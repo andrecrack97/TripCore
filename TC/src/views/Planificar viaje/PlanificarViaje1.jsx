@@ -70,7 +70,7 @@ export default function PlanificarViaje1() {
             className="btn-explorar"
             onClick={() => navigate("/explorar")}
           >
-            📍 Explorar destinos
+            Explorar destinos
           </button>
 
           <button type="submit" className="btn-siguiente">

@@ -18,22 +18,23 @@ export async function fetchUserTrips(tab = "history", page = 1, pageSize = 10) {
   return Array.isArray(data?.items) ? data.items : [];
 }
 
+// Nuevo: usa /api/me del backend
 export async function fetchMe() {
-  const res = await fetch(`${BASE}/api/usuarios/me`, { headers: authHeaders() });
+  const res = await fetch(`${BASE}/api/me`, { headers: authHeaders() });
   const data = await res.json();
-  if (!res.ok || !data?.success) throw new Error(data?.message || `Error ${res.status}`);
-  return data.user;
+  if (!res.ok) throw new Error(data?.message || `Error ${res.status}`);
+  return data;
 }
 
 export async function updateMe(payload) {
-  const res = await fetch(`${BASE}/api/usuarios/me`, {
+  const res = await fetch(`${BASE}/api/me`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(payload),
   });
   const data = await res.json();
-  if (!res.ok || !data?.success) throw new Error(data?.message || `Error ${res.status}`);
-  return data.user;
+  if (!res.ok) throw new Error(data?.message || `Error ${res.status}`);
+  return data;
 }
 
 export async function toggleFavoriteTrip(id) {

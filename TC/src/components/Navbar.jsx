@@ -1,8 +1,16 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
 import "./Navbar.css";
+import { UserContext } from "../context/UserContext.jsx";
 
 function Navbar() {
-  const usuario = localStorage.getItem("usuario");
+  const { user } = useContext(UserContext);
+  const [isLogged, setIsLogged] = useState(false);
+
+  useEffect(() => {
+    // reactivo: observa cambios de user o token
+    const token = localStorage.getItem("token");
+    setIsLogged(Boolean(user?.email || token));
+  }, [user]);
 
   return (
     <header className="navbar">
@@ -19,11 +27,11 @@ function Navbar() {
       </nav>
 
       <div className="navbar-right">
-        {!usuario ? (
+        {!isLogged ? (
           <a href="/Login" className="btn-login">Iniciar sesión</a>
         ) : (
-          <a href="/Perfil" className="avatar">
-            <img src="/assets/avatar.png" alt="Perfil" height={50} width={50} />
+          <a href="/Perfil" className="navbar-avatar">
+            <img src="/assets/avatar.png" alt="Perfil" />
           </a>
         )}
       </div>

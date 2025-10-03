@@ -41,6 +41,91 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// GET /api/viajes/sugerencias
+// Retorna sugerencias de transporte, alojamiento y actividades filtradas por parámetros
+router.get("/sugerencias", auth, async (req, res) => {
+  const {
+    origen = "",
+    destino = "",
+    fecha_salida = "",
+    fecha_vuelta = "",
+    travelerType = "",
+    groupMode = "",
+    budget = "",
+    currency = "USD",
+  } = req.query || {};
+
+  try {
+    const suggestions = { transportes: [], alojamientos: [], actividades: [] };
+
+    // Transportes: por origen/destino y fechas si existen columnas
+    try {
+      const rT = await pool.query(
+        `SELECT id_transporte as id, tipo, origen, destino, precio, moneda, fecha_salida, fecha_llegada, proveedor
+           FROM transportes
+          WHERE ($1 = '' OR LOWER(destino) LIKE LOWER('%' || $1 || '%'))
+            AND ($2 = '' OR LOWER(origen) LIKE LOWER('%' || $2 || '%'))
+            AND ($3 = '' OR fecha_salida >= $3::date)
+            AND ($4 = '' OR fecha_llegada <= $4::date)
+          ORDER BY precio ASC
+          LIMIT 10`,
+        [destino, origen, fecha_salida, fecha_vuelta]
+      );
+      suggestions.transportes = rT.rows;
+    } catch (_) {}
+
+    // Heurística de presupuesto por noche para alojamiento
+    const nights = (() => {
+      try {
+        if (!fecha_salida || !fecha_vuelta) return 0;
+        const d1 = new Date(fecha_salida);
+        const d2 = new Date(fecha_vuelta);
+        return Math.max(Math.round((d2 - d1) / (1000 * 60 * 60 * 24)), 1);
+      } catch { return 0; }
+    })();
+    const totalBudget = Number(budget) || 0;
+    const perNight = nights > 0 ? Math.floor((totalBudget * 0.5) / nights) : null; // ~50% a stay
+
+    // Alojamiento: por destino (ciudad), filtro precio_noche si hay presupuesto
+    try {
+      const rH = await pool.query(
+        `SELECT id_alojamiento as id, nombre, ciudad, zona, calificacion, precio_noche, moneda, foto_url
+           FROM alojamientos
+          WHERE ($1 = '' OR LOWER(ciudad) LIKE LOWER('%' || $1 || '%'))
+            AND ($2::int IS NULL OR precio_noche <= $2)
+          ORDER BY precio_noche ASC NULLS LAST
+          LIMIT 12`,
+        [destino, perNight]
+      );
+      suggestions.alojamientos = rH.rows;
+    } catch (_) {}
+
+    // Actividades: por ciudad y preferencia
+    const categoriaPreferida =
+      travelerType === 'cultural' ? 'cultura'
+      : travelerType === 'aventurero' ? 'aventura'
+      : travelerType === 'familiar' ? 'familia'
+      : null;
+    try {
+      const rA = await pool.query(
+        `SELECT id_actividad as id, nombre, ciudad, categoria, precio, moneda, duracion, rating, foto_url
+           FROM actividades
+          WHERE ($1 = '' OR LOWER(ciudad) LIKE LOWER('%' || $1 || '%'))
+            AND ($2 IS NULL OR LOWER(categoria) = LOWER($2))
+          ORDER BY (CASE WHEN precio = 0 THEN -1 ELSE precio END) ASC, rating DESC NULLS LAST
+          LIMIT 16`,
+        [destino, categoriaPreferida]
+      );
+      suggestions.actividades = rA.rows;
+    } catch (_) {}
+
+    return res.json({ ...suggestions, currency, budget: totalBudget, nights });
+  } catch (err) {
+    console.error("❌ Error en /api/viajes/sugerencias:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
 // POST /api/viajes/planificar
 router.post("/planificar", async (req, res) => {
   const { id_usuario, nombre_viaje, fecha_inicio, fecha_fin } = req.body;

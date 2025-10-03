@@ -171,8 +171,12 @@ export default function PlanificarViaje4() {
         <button
           className="btn btn--primary"
           onClick={() => {
-            // Podés persistir en contexto/estado global si lo necesitás:
-            // saveBudget({ total, currency: from });
+            // Persistir presupuesto y moneda para el paso 5
+            try {
+              const previo = JSON.parse(localStorage.getItem("planificarViaje")) || {};
+              const data = { ...previo, presupuesto: Number(total) || 0, moneda: from };
+              localStorage.setItem("planificarViaje", JSON.stringify(data));
+            } catch (_) {}
             navigate("/planificar/5");
           }}
         >

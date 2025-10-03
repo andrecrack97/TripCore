@@ -72,7 +72,6 @@ export default function PlanificarViaje2() {
         <h1>Elegí las fechas de tu viaje</h1>
 
         <form onSubmit={handleSiguiente}>
-          <label>Elegir fecha</label>
 
           <div className="date-grid">
             <div className="date-field">
@@ -102,30 +101,14 @@ export default function PlanificarViaje2() {
           </div>
 
           {error && <p className="error">{error}</p>}
-          {exito && <p className="exito">{exito}</p>}
 
           <div className="acciones">
-            <button
-              type="button"
-              className="btn-anterior"
-              onClick={() => navigate(-1)}
-            >
+            <button type="button" className="btn-anterior" onClick={() => navigate(-1)}>
               ◀&nbsp; Anterior
             </button>
-
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                type="button"
-                className="btn-guardar"
-                onClick={handleGuardar}
-              >
-                Guardar
-              </button>
-
-              <button type="submit" className="btn-siguiente">
-                Siguiente &nbsp; ➤
-              </button>
-            </div>
+            <button type="submit" className="btn-siguiente">
+              Siguiente &nbsp; ➤
+            </button>
           </div>
         </form>
       </div>

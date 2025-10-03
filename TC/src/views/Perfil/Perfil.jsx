@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "./Perfil.css";
 import { UserContext } from "../../context/UserContext.jsx";
 import { fetchUserTrips, updateMe, fetchMe, toggleFavoriteTrip } from "../../services/profile.js";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
 export default function Perfil() {
   const navigate = useNavigate();
@@ -196,9 +198,14 @@ export default function Perfil() {
 
             <label className="tc-field">
               <span>Contraseña</span>
-              <div style={{ position: 'relative' }}>
-                <input name="password" type={showPass ? 'text' : 'password'} placeholder="••••••••" value={form.password} onChange={handleChange} disabled={!isEditing} />
-                <button type="button" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShowPass(v => !v)} style={{ position: 'absolute', right: 10, top: 8, border: 'none', background: 'transparent', cursor: 'pointer' }}> {showPass ? '🙈' : '👁️'} </button>
+              <div className="input-con-icono" style={{ position: 'relative' }}>
+                <input name="password" type={showPass ? 'text' : 'password'} placeholder="Contraseña" value={form.password} onChange={handleChange} disabled={!isEditing} />
+                <FontAwesomeIcon
+                  icon={showPass ? faEyeSlash : faEye}
+                  onClick={() => setShowPass(v => !v)}
+                  className="icono-ojo"
+                  style={{ position: 'absolute', right: 10, top: 10, cursor: 'pointer' }}
+                />
               </div>
             </label>
 

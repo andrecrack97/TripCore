@@ -42,8 +42,20 @@ export default function PlanificarViaje3() {
   );
 
   const handleNext = () => {
-    // Persistí si tenés contexto/ backend
-    // saveStep(3, { type, age: Number(age), groupMode });
+    // Persistir elecciones en localStorage para pasos posteriores
+    try {
+      const previo = JSON.parse(localStorage.getItem("planificarViaje")) || {};
+      const perfilTitulo = TRAVELER_TYPES.find((t) => t.key === type)?.title || "";
+      const perfil = `${perfilTitulo}${groupMode === "grupo" ? " (grupo)" : groupMode === "solo" ? " (solo)" : ""}`;
+      const data = {
+        ...previo,
+        travelerType: type,
+        age: age ? Number(age) : undefined,
+        groupMode,
+        perfil,
+      };
+      localStorage.setItem("planificarViaje", JSON.stringify(data));
+    } catch (_) {}
     navigate("/planificar/4");
   };
 

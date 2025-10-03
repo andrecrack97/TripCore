@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../../services/login";
 import "./Login.css";
+import { UserContext } from "../../context/UserContext.jsx";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { setUser } = useContext(UserContext);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -17,6 +19,7 @@ export default function Login() {
     const resp = await loginUser(email, password);
     if (resp.success) {
       setError("");
+      try { setUser(resp.user); } catch (_) {}
       navigate("/"); // redirigir a home/dashboard
     } else {
       setError(resp.message);

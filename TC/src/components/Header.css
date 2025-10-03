@@ -27,6 +27,7 @@
   justify-content: center;
   gap: 20px;
   flex-wrap: wrap;
+  align-items: stretch;
 }
 
 .btn-plan {
@@ -39,6 +40,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  line-height: 1.2;
 }
 
 .btn-plan:hover {
@@ -56,6 +58,7 @@
   cursor: pointer;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  line-height: 1.2;
 }
 
 .btn-explore:hover {

@@ -29,4 +29,15 @@ export function createAPI(baseUrl = import.meta.env.VITE_API_URL) {
     // Enviamos confirmación solo para validar en el backend, nunca se persiste
     return API.post("/api/usuarios/reset-password", { email, password, confirmPassword });
   }
+
+  // Sugerencias planificar viaje
+  export async function fetchSuggestions(params = {}) {
+    const qs = new URLSearchParams(
+      Object.entries(params).reduce((acc, [k, v]) => {
+        if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
+        return acc;
+      }, {})
+    ).toString();
+    return API.get(`/api/viajes/sugerencias?${qs}`);
+  }
   

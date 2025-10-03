@@ -1,31 +1,28 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./PlanificarViaje5.css";
+import { fetchSuggestions } from "../../services/api";
 
 // ===== DEMO DATA (reemplazá por tu backend/estado real) =====
-const tripSummary = {
-  destino: "París, Francia",
-  fechas: { desde: "2025-08-17", hasta: "2025-08-27" },
-  viajeros: 2,
-  perfil: "Cultural (pareja)",
-  presupuesto: 1900,
-  moneda: "USD",
-};
+// Los datos del usuario deben leerse al montar el componente para evitar snapshots viejos
+function readPrefs() {
+  try { return JSON.parse(localStorage.getItem("planificarViaje")) || {}; } catch { return {}; }
+}
 
-const transportSugerido = {
+const transportSugeridoDemo = {
   id: "AF1234",
   tipo: "Vuelo ida y vuelta",
-  ruta: "Buenos Aires (EZE) → París (CDG)",
-  fecha: "17/08 al 27/08",
-  duracion: "13h 40m",
+  ruta: "Trayecto",
+  fecha: "",
+  duracion: "",
   equipaje: "1 valija + 1 carry on",
   co2: "Baja",
-  precio: 890,
-  proveedor: "Air France",
+  precio: 0,
+  proveedor: "",
   link: "#",
 };
 
-const alojamientos = [
+const alojamientosDemo = [
   {
     id: "H1",
     nombre: "Estudio clásico con vista a la Torre",
@@ -64,7 +61,7 @@ const alojamientos = [
   },
 ];
 
-const actividades = [
+const actividadesDemo = [
   {
     id: "A1",
     nombre: "Tour nocturno Montmartre",
@@ -103,8 +100,99 @@ export default function PlanificarViaje5() {
   const [selectedStay, setSelectedStay] = useState(null);
   const [selectedActs, setSelectedActs] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [transport, setTransport] = useState(transportSugeridoDemo);
+  const [stays, setStays] = useState(alojamientosDemo);
+  const [acts, setActs] = useState(actividadesDemo);
+  const [prefs, setPrefs] = useState(() => readPrefs());
 
-  const addTransport = () => setSelectedTransport(transportSugerido);
+  const tripSummary = useMemo(() => ({
+    destino: prefs.destino || "",
+    fechas: { desde: prefs.fecha_salida || "", hasta: prefs.fecha_vuelta || "" },
+    viajeros: prefs.viajeros || 1,
+    perfil: prefs.perfil || "",
+    presupuesto: Number(prefs.presupuesto) || 0,
+    moneda: prefs.moneda || "USD",
+  }), [prefs]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const current = readPrefs();
+        setPrefs(current);
+        const params = {
+          origen: current.origen || "",
+          destino: current.destino || "",
+          fecha_salida: current.fecha_salida || "",
+          fecha_vuelta: current.fecha_vuelta || "",
+          travelerType: current.travelerType || current.perfil || "",
+          groupMode: current.groupMode || "",
+          budget: current.presupuesto || 0,
+          currency: current.moneda || "USD",
+        };
+        const data = await fetchSuggestions(params);
+        if (Array.isArray(data?.transportes) && data.transportes.length > 0) {
+          const t = data.transportes[0];
+          setTransport({
+            id: t.id,
+            tipo: t.tipo || "Transporte",
+            ruta: `${t.origen || current.origen || ""} → ${t.destino || current.destino || ""}`.trim(),
+            fecha: `${fmtDate(current.fecha_salida)} al ${fmtDate(current.fecha_vuelta)}`,
+            duracion: t.duracion || "",
+            equipaje: t.equipaje || "",
+            co2: t.co2 || "",
+            precio: Number(t.precio) || 0,
+            proveedor: t.proveedor || "",
+            link: "#",
+          });
+        } else {
+          // Fallback si no hay transportes: mostramos trayecto y un precio estimado (35% del presupuesto)
+          setTransport({
+            ...transportSugeridoDemo,
+            ruta: `${current.origen || ""} → ${current.destino || ""}`.trim(),
+            fecha: `${fmtDate(current.fecha_salida)} al ${fmtDate(current.fecha_vuelta)}`,
+            precio: Math.max(Math.round((Number(current.presupuesto) || 0) * 0.35), 0),
+          });
+        }
+        if (Array.isArray(data?.alojamientos) && data.alojamientos.length > 0) {
+          setStays(
+            data.alojamientos.map(h => ({
+              id: h.id,
+              nombre: h.nombre,
+              zona: h.zona || h.ciudad || "",
+              calificacion: Number(h.calificacion) || 0,
+              foto: h.foto_url || "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?q=80&w=1200&auto=format&fit=crop",
+              precioNoche: Number(h.precio_noche) || 0,
+              noches: calcNightsSafe(current.fecha_salida, current.fecha_vuelta),
+              link: "#",
+              etiqueta: (Number(h.precio_noche) || 0) === 0 ? "Gratis" : "Recomendado",
+            }))
+          );
+        }
+        if (Array.isArray(data?.actividades) && data.actividades.length > 0) {
+          setActs(
+            data.actividades.map(a => ({
+              id: a.id,
+              nombre: a.nombre,
+              duracion: a.duracion || "",
+              rating: Number(a.rating) || 0,
+              precio: Number(a.precio) || 0,
+              foto: a.foto_url || "https://images.unsplash.com/photo-1528909514045-2fa4ac7a08ba?q=80&w=1200&auto=format&fit=crop",
+            }))
+          );
+        }
+      } catch (e) {
+        console.warn("Fallo al cargar sugerencias, uso demo:", e?.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const addTransport = () => setSelectedTransport(transport);
   const removeTransport = () => setSelectedTransport(null);
   const addStay = (h) => setSelectedStay(h);
   const removeStay = () => setSelectedStay(null);
@@ -117,14 +205,14 @@ export default function PlanificarViaje5() {
   const subtotales = useMemo(() => {
     const t = selectedTransport?.precio ?? 0;
     const h = selectedStay ? selectedStay.precioNoche * selectedStay.noches : 0;
-    const a = actividades
+    const a = acts
       .filter((x) => selectedActs.includes(x.id))
       .reduce((acc, x) => acc + x.precio, 0);
     const total = t + h + a;
     const restante = Math.max(tripSummary.presupuesto - total, 0);
     const estado = total <= tripSummary.presupuesto ? "ok" : "over";
     return { t, h, a, total, restante, estado };
-  }, [selectedTransport, selectedStay, selectedActs]);
+  }, [selectedTransport, selectedStay, selectedActs, acts]);
 
   // Guardar y redirigir al index con mensaje
   const handleSaveAndGoHome = async () => {
@@ -167,14 +255,14 @@ export default function PlanificarViaje5() {
       {/* Header */}
       <header className="pv5-header">
         <h1>Paso 5 de 5 – Sugerencias Inteligentes</h1>
-        <p>Ajustá y confirmá las opciones generadas para tu viaje.</p>
+        <p>{loading ? "Cargando sugerencias..." : "Ajustá y confirmá las opciones generadas para tu viaje."}</p>
       </header>
 
       {/* Resumen */}
       <section className="pv5-box pv5-summary">
         <div className="pv5-summary-item">
           <span className="tag">Destino</span>
-          <div className="val">{tripSummary.destino}</div>
+          <div className="val">{tripSummary.destino || ""}</div>
         </div>
         <div className="pv5-summary-item">
           <span className="tag">Fechas</span>
@@ -207,18 +295,18 @@ export default function PlanificarViaje5() {
           </div>
         </div>
 
-        <div className="pv5-transport">
+            <div className="pv5-transport">
           <div className="pv5-transport-left">
-            <div className="badge badge--blue">{transportSugerido.tipo}</div>
-            <div className="t-title">{transportSugerido.ruta}</div>
+            <div className="badge badge--blue">{transport.tipo}</div>
+            <div className="t-title">{transport.ruta}</div>
             <ul className="t-meta">
-              <li>{transportSugerido.fecha}</li>
-              <li>{transportSugerido.duracion}</li>
-              <li>{transportSugerido.equipaje}</li>
-              <li>CO₂: {transportSugerido.co2}</li>
+              <li>{transport.fecha}</li>
+              <li>{transport.duracion}</li>
+              <li>{transport.equipaje}</li>
+              <li>CO₂: {transport.co2}</li>
             </ul>
             <div className="t-provider">
-              {transportSugerido.proveedor} · {money(transportSugerido.precio)}
+              {transport.proveedor} · {money(transport.precio)}
             </div>
           </div>
 
@@ -252,7 +340,7 @@ export default function PlanificarViaje5() {
         </div>
 
         <div className="pv5-cards">
-          {alojamientos.map((h) => {
+          {stays.map((h) => {
             const selected = selectedStay?.id === h.id;
             return (
               <article key={h.id} className={"card " + (selected ? "card--active" : "")}>
@@ -300,7 +388,7 @@ export default function PlanificarViaje5() {
         </div>
 
         <div className="pv5-cards">
-          {actividades.map((a) => {
+          {acts.map((a) => {
             const checked = selectedActs.includes(a.id);
             return (
               <article key={a.id} className={"card small " + (checked ? "card--active" : "")}>
@@ -389,10 +477,28 @@ export default function PlanificarViaje5() {
 }
 
 // ===== utils =====
+function parseDateOnly(iso) {
+  if (!iso || typeof iso !== 'string') return null;
+  const parts = iso.split('-');
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts.map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
 function fmtDate(iso) {
+  const d = parseDateOnly(iso);
+  if (!d) return iso || "";
   try {
-    return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
   } catch { return iso; }
+}
+function calcNightsSafe(fromIso, toIso) {
+  const d1 = parseDateOnly(fromIso);
+  const d2 = parseDateOnly(toIso);
+  if (!d1 || !d2) return 1;
+  const ms = d2.getTime() - d1.getTime();
+  const nights = Math.round(ms / 86400000);
+  return Math.max(nights, 1);
 }
 function money(v, cur = "USD") {
   if (!v) return `0 ${cur}`;
