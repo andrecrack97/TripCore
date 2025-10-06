@@ -119,6 +119,11 @@
   color:#5b4b85;
 }
 .planificar2-container .btn-anterior:hover {
+  background:#f9f7ff;
+  border-color:#cfc7ee;
+  box-shadow:0 8px 16px rgba(0,0,0,.06);
+}
+.planificar2-container .btn-anterior:hover {
   box-shadow:0 8px 16px rgba(0,0,0,.06);
 }
 
@@ -148,4 +153,7 @@
 @media (max-width: 720px) {
   .planificar2-container .date-grid { grid-template-columns:1fr; }
   .planificar2-container .acciones { flex-wrap:wrap; gap:8px; }
+  .planificar2-container .btn-anterior,
+  .planificar2-container .btn-siguiente,
+  .planificar2-container .btn-guardar { width: 100%; }
 }

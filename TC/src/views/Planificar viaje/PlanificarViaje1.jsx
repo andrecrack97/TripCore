@@ -65,17 +65,26 @@ export default function PlanificarViaje1() {
           {error && <p className="error">{error}</p>}
 
           <p className="ayuda">¿Aún no estás seguro de dónde ir?</p>
-          <button
-            type="button"
-            className="btn-explorar"
-            onClick={() => navigate("/explorar")}
-          >
-            Explorar destinos
-          </button>
+          <div className="acciones">
+            <button
+              type="button"
+              className="btn-explorar"
+              onClick={() => {
+                const el = document.getElementById("destinos");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth" });
+                } else {
+                  navigate("/#destinos");
+                }
+              }}
+            >
+              Explorar destinos
+            </button>
 
-          <button type="submit" className="btn-siguiente">
-            Siguiente &nbsp; ➤
-          </button>
+            <button type="submit" className="btn-siguiente">
+              Siguiente &nbsp; ➤
+            </button>
+          </div>
         </form>
       </div>
     </div>

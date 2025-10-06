@@ -71,6 +71,18 @@ export default function Perfil() {
     return s.size;
   }, [trips]);
 
+  // Filtro por tabs: historial (todos), favoritos (marcados), planeados (próximos)
+  const filteredTrips = useMemo(() => {
+    if (activeTab === "favoritos") {
+      return trips.filter(t => t.es_favorito || t.favorito || t.isFavorite || t.like === true);
+    }
+    if (activeTab === "planeados") {
+      const today = new Date();
+      return trips.filter(t => new Date(t.fecha_inicio) > today);
+    }
+    return trips; // historial: todos
+  }, [trips, activeTab]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
@@ -173,10 +185,10 @@ export default function Perfil() {
 
           {/* Grid */}
           <div className="tc-profile__grid">
-            {trips.length === 0 && (
+            {filteredTrips.length === 0 && (
               <div className="tc-empty">Todavía no hay viajes para mostrar</div>
             )}
-            {trips.map((t) => (
+            {filteredTrips.map((t) => (
               <article key={t.id} className="tc-card">
                 <div className="tc-card__media">
                   <img src={t.img || "/assets/miami.avif"} alt={t.ciudad || t.destino || t.titulo} />

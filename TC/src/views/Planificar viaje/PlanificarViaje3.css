@@ -131,8 +131,14 @@
   cursor: pointer; font-size: 14px;
 }
 .btn--ghost { background:#fff; border-color:#e6ddff; color:#5a4f8f; }
+.btn--ghost:hover { background:#f9f7ff; border-color:#d8cff8; box-shadow:0 8px 16px rgba(0,0,0,.06); }
 .btn--primary { background:#6a00ff; color:#fff; box-shadow:0 8px 18px rgba(106,0,255,.25); }
 .btn:disabled { opacity:.6; cursor:not-allowed; }
+
+@media (max-width: 720px) {
+  .pv3-actions { flex-direction: column; gap: 8px; }
+  .pv3-actions .btn { width: 100%; }
+}
 
 /* Aside ilustrado */
 .pv3-aside { display:flex; }

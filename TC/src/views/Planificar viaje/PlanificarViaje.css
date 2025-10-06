@@ -92,19 +92,38 @@
   }
   
   .btn-siguiente {
-    margin-top: 2rem;
+    margin-top: 0;
     padding: 1rem 2rem;
     background-color: #6a00ff;
     color: white;
     border: none;
     border-radius: 50px;
     font-size: 1.2rem;
-    float: right;
     cursor: pointer;
     transition: background 0.3s;
   }
   
   .btn-siguiente:hover {
     background-color: #5000cc;
+  }
+
+  /* Alineación de botones en Paso 1 */
+  .acciones {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 1.5rem;
+  }
+
+  @media (max-width: 720px) {
+    .acciones {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .acciones .btn-siguiente,
+    .acciones .btn-explorar {
+      width: 100%;
+    }
   }
   

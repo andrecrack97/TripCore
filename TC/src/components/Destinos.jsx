@@ -7,7 +7,7 @@ import "./Destinos.css";
 
 export default function Destinos() {
   return (
-    <section className="seccion-destinos">
+    <section className="seccion-destinos" id="destinos">
       <h2 className="titulo-destinos">Destinos recomendados</h2>
 
       <div className="grid-destinos">

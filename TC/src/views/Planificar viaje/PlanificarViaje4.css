@@ -167,6 +167,11 @@
   border-color: #e6ddff;
   color: #5a4f8f;
 }
+.btn--ghost:hover {
+  background:#f9f7ff;
+  border-color:#d8cff8;
+  box-shadow:0 8px 16px rgba(0,0,0,.06);
+}
 .btn--primary {
   background: #6a00ff;
   color: #fff;

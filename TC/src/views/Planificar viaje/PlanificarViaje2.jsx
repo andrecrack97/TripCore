@@ -6,11 +6,10 @@ export default function PlanificarViaje2() {
   const navigate = useNavigate();
 
   const hoy = new Date();
-  const isoHoy = new Date(
-    hoy.getFullYear(),
-    hoy.getMonth(),
-    hoy.getDate()
-  ).toISOString().split("T")[0];
+  const yyyy = hoy.getFullYear();
+  const mm = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dd = String(hoy.getDate()).padStart(2, "0");
+  const isoHoy = `${yyyy}-${mm}-${dd}`; // fecha local, sin desfase de zona horaria
 
   const [salida, setSalida] = useState("");
   const [vuelta, setVuelta] = useState("");

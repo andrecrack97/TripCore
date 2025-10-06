@@ -73,5 +73,6 @@
 .btn--primary{background:#6a00ff;color:#fff;box-shadow:0 8px 18px rgba(106,0,255,.25)}
 .btn--secondary{background:#ece6ff;color:#482ca1;border-color:#d4c6ff}
 .btn--ghost{background:#fff;color:#5a4f8f;border-color:#e6ddff}
+.btn--ghost:hover{background:#f9f7ff;border-color:#d8cff8;box-shadow:0 8px 16px rgba(0,0,0,.06)}
 .btn--danger{background:#ffe9ec;color:#8a2032;border-color:#ffcbd3}
 .btn:active{transform:translateY(1px)}
