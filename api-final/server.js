@@ -14,6 +14,7 @@ app.use("/api", require("./routes/auth"));            // /api/register - /api/lo
 app.use("/api/usuarios", require("./routes/usuarios"));// /api/usuarios/registro
 app.use("/api/viajes", require("./routes/viajes"));    // ejemplo viajes
 app.use("/api/me", require("./routes/me"));             // me endpoints compactos
+app.use("/api/seguros", require("./routes/seguros"));   // seguros
 
 // Salud
 app.get("/health", (_req, res) => res.json({ ok: true }));
@@ -22,6 +23,4 @@ const PORT = 3005;
 app.listen(PORT, () => console.log(`🚀 hola API en http://localhost:${PORT}`));
 
 
-const destinosGeo = require('./routes/destinosGEO');
-app.use('/api/destinos/geo', destinosGeo);
 

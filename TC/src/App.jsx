@@ -16,6 +16,7 @@ import PlanificarViaje5 from './views/Planificar viaje/PlanificarViaje5';
 import MisViajes from './views/Mis viajes/MisViajes';
 import Perfil from './views/Perfil/Perfil';
 import Olvide from './views/Olvide Constraseña/Olvide';
+import Seguros from './views/Seguridad y seguros/Seguros';
 
 
 import RequireAuth from './components/RequireAuth';
@@ -41,6 +42,7 @@ export function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
           <Route path="/olvide" element={<Olvide />} />
+          <Route path="/seguros" element={<Seguros />} />
           <Route path="/perfil" element={<Perfil/>} />
           <Route
             path="/planificar"

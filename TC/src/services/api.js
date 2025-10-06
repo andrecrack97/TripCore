@@ -40,4 +40,23 @@ export function createAPI(baseUrl = import.meta.env.VITE_API_URL) {
     ).toString();
     return API.get(`/api/viajes/sugerencias?${qs}`);
   }
+
+  // Seguros services
+  export async function fetchSegurosPlanes(params = {}) {
+    const qs = new URLSearchParams(
+      Object.entries(params).reduce((acc, [k, v]) => {
+        if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
+        return acc;
+      }, {})
+    ).toString();
+    return API.get(`/api/seguros/planes${qs ? `?${qs}` : ""}`);
+  }
+
+  export async function fetchSegurosCompanias() {
+    return API.get(`/api/seguros/companias`);
+  }
+
+  export async function fetchAlertasSanitarias() {
+    return API.get(`/api/seguros/alertas`);
+  }
   
