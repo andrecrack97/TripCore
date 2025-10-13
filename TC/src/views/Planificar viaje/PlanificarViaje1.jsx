@@ -191,14 +191,7 @@ export default function PlanificarViaje1() {
             <button
               type="button"
               className="btn-explorar"
-              onClick={() => {
-                const el = document.getElementById("destinos");
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth" });
-                } else {
-                  navigate("/#destinos");
-                }
-              }}
+              onClick={() => navigate("/explorar-destinos")}
             >
               Explorar destinos
             </button>

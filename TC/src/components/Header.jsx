@@ -4,14 +4,7 @@ import "./Header.css";
 function Header() {
   const navigate = useNavigate();
   const goPlan = () => navigate("/planificar");
-  const goExplore = () => {
-    const el = document.getElementById("destinos");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" });
-    } else {
-      navigate("/#destinos");
-    }
-  };
+  const goExplore = () => navigate("/explorar-destinos");
   return (
     <section
      className="header"

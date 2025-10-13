@@ -20,7 +20,7 @@ function Navbar() {
 
       <nav className="navbar-links">
         <a href="/planificar">Planea tu viaje</a>
-        <a href="#funcionalidades">Explorar destinos</a>
+        <a href="/explorar-destinos">Explorar destinos</a>
         <a href="#explorar">Ofertas</a>
         <a href="/MisViajes">Mis viajes</a>
         <a href="#ayuda">Ayuda</a>
