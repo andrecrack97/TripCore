@@ -41,6 +41,18 @@ export function createAPI(baseUrl = import.meta.env.VITE_API_URL) {
     return API.get(`/api/viajes/sugerencias?${qs}`);
   }
 
+// Explorar destinos - detalle enriquecido (provisorio)
+export async function fetchExplorarDestinoDetalle(params = {}) {
+  const qs = new URLSearchParams(
+    Object.entries(params).reduce((acc, [k, v]) => {
+      if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
+      return acc;
+    }, {})
+  ).toString();
+  // Reusa el endpoint de sugerencias hasta que exista uno específico
+  return API.get(`/api/viajes/sugerencias?${qs}`);
+}
+
   // Seguros services
   export async function fetchSegurosPlanes(params = {}) {
     const qs = new URLSearchParams(

@@ -201,7 +201,7 @@ export default function Perfil() {
                     <span className="tc-card__date">{formatRange(t.fecha_inicio, t.fecha_fin)}</span>
                     <span className="tc-card__rating">★ {(t.rating || 4.6).toFixed ? (t.rating || 4.6).toFixed(1) : 4.6}</span>
                   </div>
-                  <button className="tc-card__cta">Ver detalles</button>
+                  <button className="tc-card__cta" onClick={() => navigate(`/viajes/${t.id}`)}>Ver detalles</button>
                 </div>
               </article>
             ))}

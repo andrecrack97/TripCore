@@ -18,6 +18,8 @@ import Perfil from './views/Perfil/Perfil';
 import Olvide from './views/Olvide Constraseña/Olvide';
 import Seguros from './views/Seguridad y seguros/Seguros';
 import ExplorarDestinos from './views/Explorar Destinos/ExplorarDestinos';
+import TripDetails from './views/Trip Details/TripDetails';
+import ExplorarDestinoVerMas from './views/Explorar Destinos Ver Mas/ExplorarDestinoVerMas';
 
 
 import RequireAuth from './components/RequireAuth';
@@ -45,6 +47,7 @@ export function App() {
           <Route path="/olvide" element={<Olvide />} />
           <Route path="/seguros" element={<Seguros />} />
           <Route path="/explorar-destinos" element={<ExplorarDestinos />} />
+          <Route path="/explorar-destinos/:id" element={<ExplorarDestinoVerMas />} />
           <Route path="/perfil" element={<Perfil/>} />
           <Route
             path="/planificar"
@@ -91,6 +94,14 @@ export function App() {
             element={
               <RequireAuth>
                 <MisViajes/>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/viajes/:id"
+            element={
+              <RequireAuth>
+                <TripDetails />
               </RequireAuth>
             }
           />

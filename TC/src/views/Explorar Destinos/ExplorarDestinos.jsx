@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./ExplorarDestinos.css";
 
 export default function ExplorarDestinos() {
+  const navigate = useNavigate();
   const [pais, setPais] = useState("Todos los países");
   const [ciudad, setCiudad] = useState("");
   const [climas, setClimas] = useState(new Set());
@@ -156,7 +158,12 @@ export default function ExplorarDestinos() {
                       </div>
                       <div className="price">
                         <span>USD {d.precio.toLocaleString()}</span>
-                        <button className="btn-more">Ver más</button>
+                        <button
+                          className="btn-more"
+                          onClick={() => navigate(`/explorar-destinos/${d.id}`, { state: { destino: d } })}
+                        >
+                          Ver más
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -175,9 +182,14 @@ export default function ExplorarDestinos() {
                       <span className="badge">{s.rating.toFixed(1)}</span>
                     </div>
                     <p className="sub">{s.pais}</p>
-                    <div className="mini-bottom">
+                  <div className="mini-bottom">
                       <span className="mini-price">USD {s.precio.toLocaleString()}</span>
-                      <button className="link-more">Ver más</button>
+                    <button
+                      className="link-more"
+                      onClick={() => navigate(`/explorar-destinos/${s.id}`, { state: { destino: s } })}
+                    >
+                      Ver más
+                    </button>
                     </div>
                   </div>
                 </article>
