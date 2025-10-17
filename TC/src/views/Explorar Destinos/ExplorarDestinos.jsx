@@ -1,193 +1,229 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import AutoDestinoGeo from "../../components/DestinationAutocomplete";
+import { destinosApi } from "../../services/destinosapi";
 import "./ExplorarDestinos.css";
 
 export default function ExplorarDestinos() {
-  const [pais, setPais] = useState("Todos los países");
-  const [ciudad, setCiudad] = useState("");
-  const [climas, setClimas] = useState(new Set());
-  const [temporadas, setTemporadas] = useState(new Set());
+  // Filtros
+  const [countries, setCountries] = useState([]);
+  const [countryId, setCountryId] = useState("");             // code: "AR"
+  const [cityPicked, setCityPicked] = useState(null);          // objeto ciudad del autocomplete
+  const [q, setQ] = useState("");                              // texto libre de búsqueda
 
-  const destacados = useMemo(
-    () => [
-      {
-        id: "santorini",
-        titulo: "Santorini",
-        pais: "Grecia",
-        descripcion:
-          "Playas de arena negra, aguas cristalinas y arquitectura única.",
-        precio: 1200,
-        img: "/assets/rio.avif",
-        clima: ["Mediterráneo", "Templado"],
-        rating: 4.9,
-      },
-      {
-        id: "cusco",
-        titulo: "Cusco",
-        pais: "Perú",
-        descripcion: "Ciudad histórica rodeada de ruinas incas y cultura vibrante.",
-        precio: 800,
-        img: "/assets/ushuaia.webp",
-        clima: ["Templado", "Primavera"],
-        rating: 4.7,
-      },
-      {
-        id: "kioto",
-        titulo: "Kioto",
-        pais: "Japón",
-        descripcion: "Templos antiguos, jardines zen y tradición japonesa.",
-        precio: 1500,
-        img: "/assets/paris.avif",
-        clima: ["Templado", "Primavera"],
-        rating: 4.8,
-      },
-    ],
-    []
-  );
+  // Resultados
+  const [results, setResults] = useState([]);
+  const [recs, setRecs] = useState([]);                        // “Viajes similares a los tuyos”
+  const [loading, setLoading] = useState(false);
 
-  const toggleSet = (setFn, value) => {
-    setFn((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-  };
+  // Derivados
+  const queryToSearch = useMemo(() => (cityPicked?.name || q || "").trim(), [cityPicked, q]);
 
-  const limpiar = () => {
-    setPais("Todos los países");
-    setCiudad("");
-    setClimas(new Set());
-    setTemporadas(new Set());
-  };
-
-  const filtrados = useMemo(() => {
-    return destacados.filter((d) => {
-      if (pais !== "Todos los países" && d.pais !== pais) return false;
-      if (ciudad && !(`${d.titulo} ${d.pais}`.toLowerCase().includes(ciudad.toLowerCase()))) return false;
-      if (climas.size > 0) {
-        const ok = Array.from(climas).every((c) => d.clima.includes(c));
-        if (!ok) return false;
+  // Cargar países al inicio
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await destinosApi.listCountries({ limit: 250 });
+        setCountries(data?.data || []);
+      } catch (e) {
+        console.error(e);
       }
-      if (temporadas.size > 0) {
-        const okTemp = Array.from(temporadas).some((t) => d.clima.includes(t));
-        if (!okTemp) return false;
-      }
-      return true;
-    });
-  }, [destacados, pais, ciudad, climas, temporadas]);
+    })();
+  }, []);
 
-  const similares = useMemo(
-    () => [
-      { id: "riviera", titulo: "Riviera Maya", pais: "México", precio: 900, img: "/assets/puntacana.jpg", rating: 4.6 },
-      { id: "amalfi", titulo: "Amalfi", pais: "Italia", precio: 1300, img: "/assets/resort.png", rating: 4.9 },
-      { id: "dubrovnik", titulo: "Dubrovnik", pais: "Croacia", precio: 1100, img: "/assets/miami.avif", rating: 4.7 },
-    ],
-    []
-  );
+  // Populares + recomendaciones de arranque
+  useEffect(() => {
+    loadPopular();
+    loadRecs();
+  }, []);
+
+  async function loadPopular() {
+    try {
+      setLoading(true);
+      const data = await destinosApi.popularCities({ minPopulation: 600000, limit: 12 });
+      setResults(data?.data || []);
+    } catch (e) {
+      console.error(e);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadRecs() {
+    try {
+      const data = await destinosApi.popularCities({ minPopulation: 400000, limit: 8 });
+      setRecs(data?.data || []);
+    } catch (e) {
+      console.error(e);
+      setRecs([]);
+    }
+  }
+
+  async function applyFilters() {
+    try {
+      setLoading(true);
+      const data = await destinosApi.searchCities({
+        q: queryToSearch || "a",                 // mínima query para obtener algo si no eligen ciudad
+        countryIds: countryId || undefined,
+        minPopulation: 10000,
+        limit: 12
+      });
+      setResults(data?.data || []);
+    } catch (e) {
+      console.error(e);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function resetFilters() {
+    setCountryId("");
+    setCityPicked(null);
+    setQ("");
+    loadPopular();
+  }
 
   return (
-    <section className="explorar-page">
-      <div className="container">
-        <h2 className="title">Explorá tu próximo destino</h2>
+    <div className="ex-bg">
+      <div className="ex-container">
 
-        <div className="layout">
-          <aside className="filters">
-            <h4>Filtros</h4>
-            <div className="filter-group">
-              <label>País</label>
-              <select value={pais} onChange={(e) => setPais(e.target.value)}>
-                <option>Todos los países</option>
-                <option>Grecia</option>
-                <option>Perú</option>
-                <option>Japón</option>
+        {/* Título + barra grande */}
+        <h1 className="ex-title">Explorá tu próximo destino</h1>
+        <div className="ex-searchbar">
+          <span className="ex-search-ico" aria-hidden>🔍</span>
+          <input
+            className="ex-search-input"
+            placeholder="¿A dónde querés ir?"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+
+        <div className="ex-layout">
+          {/* Sidebar de filtros */}
+          <aside className="ex-filters">
+            <div className="ex-filter-group">
+              <label className="ex-label">País</label>
+              <select
+                className="ex-input"
+                value={countryId}
+                onChange={(e) => setCountryId(e.target.value)}
+              >
+                <option value="">Todos los países</option>
+                {countries.map((c) => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
               </select>
             </div>
-            <div className="filter-group">
-              <label>Ciudad</label>
-              <input placeholder="Buscar ciudad..." value={ciudad} onChange={(e) => setCiudad(e.target.value)} />
+
+            <div className="ex-filter-group">
+              <label className="ex-label">Ciudad</label>
+              <AutoDestinoGeo
+                label={null}
+                placeholder="Buscar ciudad..."
+                countryIds={countryId || undefined}
+                defaultValue={cityPicked || undefined}
+                onSelect={setCityPicked}
+              />
             </div>
-            <div className="filter-group">
-              <label>Clima</label>
-              <div className="chips">
-                {['Templado','Frío','Tropical','Desértico','Mediterráneo'].map((c) => (
-                  <button
-                    key={c}
-                    className={climas.has(c) ? 'active' : ''}
-                    type="button"
-                    onClick={() => toggleSet(setClimas, c)}
-                  >{c}</button>
-                ))}
+
+            {/* Chips decorativos como en la maqueta (no filtran en la API por ahora) */}
+            <div className="ex-filter-group">
+              <label className="ex-label">Clima</label>
+              <div className="ex-chips">
+                <button type="button" className="chip">Tropical</button>
+                <button type="button" className="chip">Mediterráneo</button>
+                <button type="button" className="chip">Templado</button>
+                <button type="button" className="chip">Frío</button>
+                <button type="button" className="chip">Desértico</button>
               </div>
             </div>
-            <div className="filter-group">
-              <label>Temporada</label>
-              <div className="chips">
-                {['Verano','Otoño','Invierno','Primavera'].map((t) => (
-                  <button
-                    key={t}
-                    className={temporadas.has(t) ? 'active' : ''}
-                    type="button"
-                    onClick={() => toggleSet(setTemporadas, t)}
-                  >{t}</button>
-                ))}
+
+            <div className="ex-filter-group">
+              <label className="ex-label">Temporada</label>
+              <div className="ex-chips">
+                <button type="button" className="chip">Verano</button>
+                <button type="button" className="chip">Otoño</button>
+                <button type="button" className="chip">Invierno</button>
+                <button type="button" className="chip">Primavera</button>
               </div>
             </div>
-            <button className="btn-apply" type="button" onClick={() => { /* filtros en vivo */ }}>Aplicar filtros</button>
-            <button className="btn-clear" type="button" onClick={limpiar}>Limpiar</button>
+
+            <button className="ex-apply" onClick={applyFilters}>Aplicar filtros</button>
+            <button className="ex-clear" onClick={resetFilters}>Limpiar filtros</button>
           </aside>
 
-          <div className="content">
-            <div className="cards-grid">
-              {filtrados.map((d) => (
-                <article className="card" key={d.id}>
-                  <div className="card-img" style={{ backgroundImage: `url(${d.img})` }} />
-                  <div className="card-body">
-                    <div className="card-top">
-                      <h5>{d.titulo}</h5>
-                      <span className="badge">{d.rating.toFixed(1)}</span>
-                    </div>
-                    <p className="sub">{d.pais}</p>
-                    <p className="desc">{d.descripcion}</p>
-                    <div className="card-bottom">
-                      <div className="tags">
-                        {d.clima.map((t) => (
-                          <span className="tag" key={t}>{t}</span>
-                        ))}
-                      </div>
-                      <div className="price">
-                        <span>USD {d.precio.toLocaleString()}</span>
-                        <button className="btn-more">Ver más</button>
-                      </div>
-                    </div>
-                  </div>
-                </article>
+          {/* Cards de resultados */}
+          <section className="ex-results">
+            {loading && <p className="muted">Cargando destinos...</p>}
+            {!loading && results.length === 0 && <p className="muted">No hay resultados.</p>}
+
+            <div className="ex-grid">
+              {results.map((c) => (
+                <DestinationCard key={c.id} city={c} />
               ))}
             </div>
 
-            <h3 className="subtitle">Viajes similares a los tuyos</h3>
-            <div className="mini-grid">
-              {similares.map((s) => (
-                <article className="mini-card" key={s.id}>
-                  <div className="mini-img" style={{ backgroundImage: `url(${s.img})` }} />
-                  <div className="mini-body">
-                    <div className="mini-top">
-                      <h6>{s.titulo}</h6>
-                      <span className="badge">{s.rating.toFixed(1)}</span>
-                    </div>
-                    <p className="sub">{s.pais}</p>
-                    <div className="mini-bottom">
-                      <span className="mini-price">USD {s.precio.toLocaleString()}</span>
-                      <button className="link-more">Ver más</button>
-                    </div>
-                  </div>
-                </article>
+            {/* Recomendados */}
+            <h2 className="ex-subtitle">Viajes similares a los tuyos</h2>
+            <div className="ex-grid ex-grid-sm">
+              {recs.map((c) => (
+                <DestinationCard key={`rec-${c.id}`} city={c} small />
               ))}
             </div>
-          </div>
+          </section>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
+/* ---------- Card de destino ---------- */
 
+function DestinationCard({ city, small = false }) {
+  const name = city.name || city.city;
+  const region = city.region;
+  const country = city.country;
+
+  // Imagen dinámica sin API key (Unsplash por keyword):
+  const imgUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(name)}%20city`;
+
+  // Rating/price solo visuales (derivados de población para evitar hardcode)
+  const pop = Number(city.population || 0);
+  const rating = (Math.min(5, 3.9 + (pop % 1000) / 1000 * 1.1)).toFixed(1);
+  const price = Math.max(300, Math.round(2500 - Math.min(2000, pop / 1000))); // USD referencial
+
+  return (
+    <article className={`ex-card ${small ? "sm" : ""}`}>
+      <div className="ex-card-imgwrap">
+        <img src={imgUrl} alt={name} loading="lazy" />
+        <button className="ex-fav" title="Guardar">♡</button>
+      </div>
+
+      <div className="ex-card-body">
+        <div className="ex-card-row">
+          <h3 className="ex-card-title">{name}</h3>
+          <div className="ex-badge"><span>⭐</span> {rating}</div>
+        </div>
+        <div className="ex-card-sub">{[country, region].filter(Boolean).join(" · ")}</div>
+
+        {!small && (
+          <p className="ex-card-desc">
+            {region ? `Región ${region.toLowerCase()}. ` : ""}Ciudad para descubrir.
+          </p>
+        )}
+
+        <div className="ex-card-tags">
+          {region && <span className="tag">{region}</span>}
+          {country && <span className="tag">{country}</span>}
+        </div>
+
+        <div className="ex-card-footer">
+          <div className="ex-price">USD {price.toLocaleString()}</div>
+          <button className="ex-more">Ver más</button>
+        </div>
+      </div>
+    </article>
+  );
+}

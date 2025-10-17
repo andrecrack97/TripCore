@@ -1,129 +1,134 @@
-.planificador-container {
-    background: linear-gradient(to bottom right, #bfa2ff, #e2d4ff);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Poppins', sans-serif;
-    transform: scale(1); /* Aumenta todo al doble */
-    transform-origin: top center; /* Ajusta el punto de escalado */
-  }
-  
-  .planificador-box {
-    background: white;
-    border: 3px solid #6a00ff;
-    border-radius: 24px;
-    padding: 3rem 4rem;
-    max-width: 800px;
-    width: 100%;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  }
-  
-  .breadcrumb {
-    font-size: 1.2rem;
-    color: #666;
-    margin-bottom: 0.5rem;
-  }
-  
-  .breadcrumb span {
-    color: #6a00ff;
-    font-weight: 600;
-  }
-  
-  h2 {
-    color: #888;
-    font-size: 1.4rem;
-    margin: 0;
-  }
-  
-  h1 {
-    font-size: 2.5rem;
-    margin: 0.5rem 0 2rem;
-  }
-  
-  form label {
-    display: block;
-    font-weight: 600;
-    font-size: 1.2rem;
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  form input {
-    width: 100%;
-    padding: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    font-size: 1.2rem;
-    background: #f7f7f7;
-  }
-  
-  .error {
-    color: red;
-    margin-top: 1rem;
-    font-size: 1.1rem;
-  }
-  
-  .exito {
-    color: green;
-    margin-top: 1rem;
-    font-size: 1.1rem;
-  }
-  
-  .ayuda {
-    margin-top: 2rem;
-    font-size: 1.1rem;
-  }
-  
-  .btn-explorar {
-    background-color: #e8ccff;
-    color: #6a00ff;
-    border: none;
-    border-radius: 16px;
-    padding: 0.9rem 1.5rem;
-    font-size: 1.2rem;
-    cursor: pointer;
-    margin-top: 0.8rem;
-    transition: all 0.2s;
-  }
-  
-  .btn-explorar:hover {
-    background-color: #d7b3ff;
-  }
-  
-  .btn-siguiente {
-    margin-top: 0;
-    padding: 1rem 2rem;
-    background-color: #6a00ff;
-    color: white;
-    border: none;
-    border-radius: 50px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  
-  .btn-siguiente:hover {
-    background-color: #5000cc;
-  }
+/* Colores base */
+:root{
+  --tc-primary: #6A00FF;         /* morado principal */
+  --tc-primary-600: #5a00db;
+  --tc-bg-grad-a: #BFA2FF;       /* fondo degradado */
+  --tc-bg-grad-b: #7da0ff;
+  --tc-text-900: #111;
+  --tc-text-600: #5f6368;
+  --tc-surface: #ffffff;
+  --tc-border: #e9e9ef;
+  --tc-shadow: 0 10px 30px rgba(17, 17, 17, 0.08);
+}
 
-  /* Alineación de botones en Paso 1 */
-  .acciones {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-top: 1.5rem;
-  }
+/* Fondo con degradado */
+.pv1-bg{
+  min-height: calc(100vh - 72px); /* deja espacio para el header */
+  background: linear-gradient(135deg, var(--tc-bg-grad-a), var(--tc-bg-grad-b));
+  padding: 28px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
 
-  @media (max-width: 720px) {
-    .acciones {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .acciones .btn-siguiente,
-    .acciones .btn-explorar {
-      width: 100%;
-    }
-  }
-  
+/* Tarjeta principal */
+.pv1-card{
+  width: 100%;
+  max-width: 1080px;
+  background: var(--tc-surface);
+  border: 1px solid var(--tc-border);
+  border-radius: 10px;
+  box-shadow: var(--tc-shadow);
+  padding: 28px;
+}
+
+/* Migas de pan */
+.pv1-breadcrumbs{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.pv1-breadcrumbs .muted{ color: var(--tc-text-600); }
+.pv1-breadcrumbs .sep{ color: #bbb; }
+.pv1-breadcrumbs .crumb-active{
+  color: var(--tc-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Encabezados */
+.pv1-step{
+  color: var(--tc-text-600);
+  margin: 0 0 6px 0;
+  font-weight: 600;
+}
+.pv1-title{
+  margin: 0 0 22px 0;
+  font-size: 32px;
+  line-height: 1.15;
+  color: var(--tc-text-900);
+}
+
+/* Campos */
+.pv1-field{ margin-bottom: 18px; }
+.pv1-label{
+  display: block;
+  font-weight: 600;
+  color: var(--tc-text-900);
+  margin-bottom: 8px;
+}
+
+/* Integra con tu AutoDestinoGeo.css: los inputs ya tienen borde y focus.
+   Si querés que se vean más "apagados" como la maqueta, podés agregar: */
+.dest-input{
+  background: #f6f7fb;
+  border-color: #e5e7f0;
+}
+
+/* Explorar destinos */
+.pv1-explore{ margin: 18px 0 8px 0; }
+.pv1-explore-text{ color: var(--tc-text-600); margin: 0 0 10px 0; }
+.pv1-explore-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #ede3ff;
+  color: var(--tc-primary);
+  border: 1px solid #e6dafc;
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.pv1-explore-btn:hover{ background:#e7dafd; }
+.pv1-explore-btn .pin{ font-size: 18px; }
+
+/* Error */
+.pv1-error{
+  margin-top: 8px;
+  color: #b00020;
+  background: #fde7ea;
+  border: 1px solid #f6c2ca;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Acciones */
+.pv1-actions{
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.pv1-next{
+  background: var(--tc-primary);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(106, 0, 255, .25);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pv1-next:hover{ background: var(--tc-primary-600); }
+.pv1-next .arrow{ font-size: 18px; line-height: 1; }
+
+@media (max-width: 640px){
+  .pv1-card{ padding: 20px; }
+  .pv1-title{ font-size: 26px; }
+}

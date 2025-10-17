@@ -1,5 +1,5 @@
 // Servicios de perfil y viajes (con Bearer token)
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
+const BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function authHeaders() {
   const token = localStorage.getItem("token");
