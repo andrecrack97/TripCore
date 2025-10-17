@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./MisViajes.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
@@ -38,7 +39,7 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function MisViajes() {
-  // Fallback sencillo para token/user sin contexto
+  const navigate = useNavigate();
   const token = (() => { try { return localStorage.getItem("token"); } catch { return null; } })();
   const user = (() => { try { return JSON.parse(localStorage.getItem("user")||"null"); } catch { return null; } })();
 
@@ -90,7 +91,7 @@ export default function MisViajes() {
       return byTab && bySearch;
     });
 
-    // orden: primero en curso, luego próximos, luego completados, cada grupo por fecha inicio asc
+    // orden primero en curso, luego próximos, luego completados
     const rank = { ongoing: 0, upcoming: 1, completed: 2 };
     return filtered.sort((a, b) => {
       const sa = rank[getStatus(a.fecha_inicio, a.fecha_fin)] ?? 1;
@@ -201,6 +202,7 @@ function TripCard({ trip }) {
 
   const status = getStatus(fecha_inicio, fecha_fin);
   const title = titulo || [ciudad, pais].filter(Boolean).join(", ") || destino || "Viaje";
+  const id = trip.id_viaje || trip.id;
 
   return (
     <article className="trip-card">
@@ -223,7 +225,12 @@ function TripCard({ trip }) {
         <div className="trip-footer">
           <StatusBadge status={status} />
           <div className="trip-actions">
-            <button className="btn btn--secondary">Ver Detalles</button>
+            <button
+              className="btn btn--secondary"
+              onClick={() => navigate(`/viajes/${id}`,{ state: { trip } })}
+            >
+              Ver Detalles
+            </button>
             <div className="dropdown">
               <button className="btn btn--ghost">Adicionales ▾</button>
               <div className="dropdown-menu">

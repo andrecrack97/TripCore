@@ -51,6 +51,69 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// GET /api/viajes/:id - detalle de un viaje específico
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "ID inválido" });
+
+    // Viaje base
+    const rTrip = await pool.query(
+      `SELECT 
+         v.id_viaje AS id,
+         v.id_usuario,
+         v.nombre_viaje AS titulo,
+         v.fecha_inicio,
+         v.fecha_fin,
+         v.destino_principal AS destino,
+         v.destino_principal AS ciudad,
+         NULL::text AS pais,
+         v.presupuesto_total AS presupuesto
+       FROM viajes v
+       WHERE v.id_viaje = $1 AND v.id_usuario = $2
+       LIMIT 1`,
+      [id, req.userId]
+    );
+    if (rTrip.rowCount === 0) return res.status(404).json({ success: false, message: "Viaje no encontrado" });
+
+    const trip = rTrip.rows[0];
+
+    // Itinerario simple si existen tablas relacionadas
+    let alojamientos = [];
+    let transportes = [];
+    let actividades = [];
+    try {
+      const rA = await pool.query(
+        `SELECT id_reserva as id, nombre_hotel as nombre, ciudad, fecha_checkin, fecha_checkout, confirmacion
+           FROM reservas_alojamiento WHERE id_viaje = $1 ORDER BY fecha_checkin ASC`,
+        [id]
+      );
+      alojamientos = rA.rows;
+    } catch (_) {}
+    try {
+      const rT = await pool.query(
+        `SELECT id_transporte_viaje as id, tipo, origen, destino, fecha_salida, fecha_llegada, codigo_reserva
+           FROM viajes_transportes WHERE id_viaje = $1 ORDER BY fecha_salida ASC`,
+        [id]
+      );
+      transportes = rT.rows;
+    } catch (_) {}
+    try {
+      const rAct = await pool.query(
+        `SELECT id_viaje_actividad as id, nombre, ciudad, fecha, hora, notas
+           FROM viajes_actividades WHERE id_viaje = $1 ORDER BY fecha ASC, hora ASC`,
+        [id]
+      );
+      actividades = rAct.rows;
+    } catch (_) {}
+
+    return res.json({ ...trip, alojamientos, transportes, actividades });
+  } catch (err) {
+    console.error("❌ Error al obtener detalle del viaje:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
 // GET /api/viajes/sugerencias
 // Retorna sugerencias de transporte, alojamiento y actividades filtradas por parámetros
 router.get("/sugerencias", auth, async (req, res) => {
