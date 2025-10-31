@@ -16,10 +16,13 @@ app.use("/api/me", require("./routes/me"));
 app.use("/api/seguros", require("./routes/seguros"));
 
 // Rutas GEO (módulo GeoDB)
-app.use("/api/destinos", require("./apiGeoDB/routes/destinosGEO"));
+app.use("/api/destinos", require("./apiGeoDB/routes/destinosGEO"));          // GeoDB (fallback)
+app.use("/api/destinos-app", require("./apiDestinosApp/routes/destinosApp")); // Catálogo curado
 
 // Salud
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 API en http://localhost:${PORT}`));
+
+

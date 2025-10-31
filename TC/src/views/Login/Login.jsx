@@ -5,8 +5,8 @@ import "./Login.css";
 import { UserContext } from "../../context/UserContext.jsx";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("liamc@gmail.com");
+  const [password, setPassword] = useState("liamc123");
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { setUser } = useContext(UserContext);

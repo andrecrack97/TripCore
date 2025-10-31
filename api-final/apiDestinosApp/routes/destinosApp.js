@@ -30,7 +30,7 @@ router.get("/autocomplete", async (req, res) => {
   }
 });
 
-// GET /api/destinos-app/:id
+// GET /api/destinos-app/:id  (detalle curado)
 router.get("/:id", async (req, res) => {
   try {
     const data = await svc.getById(req.params.id);

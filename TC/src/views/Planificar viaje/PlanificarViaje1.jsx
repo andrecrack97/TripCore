@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import AutoDestinoGeo from "../../components/DestinationAutocomplete";
+import AutoDestinoGeo from "../../components/AutoDestinoGeo";
 import "./PlanificarViaje.css";
 
 export default function PlanificarViaje1() {
@@ -9,7 +9,6 @@ export default function PlanificarViaje1() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Restaurar datos si el usuario vuelve atrás
   useEffect(() => {
     try {
       const previo = JSON.parse(localStorage.getItem("planificarViaje")) || {};
@@ -25,19 +24,19 @@ export default function PlanificarViaje1() {
       return;
     }
     setError("");
-    const payload = { origen, destino };
-    localStorage.setItem("planificarViaje", JSON.stringify(payload));
+    localStorage.setItem("planificarViaje", JSON.stringify({ origen, destino }));
     navigate("/planificar/2");
   };
 
   return (
     <div className="pv1-bg">
       <div className="pv1-card">
-        {/* Migas */}
         <div className="pv1-breadcrumbs">
           <span className="muted">Planificador de Viajes</span>
           <span className="sep">›</span>
-          <Link className="crumb-active" to="/planificar/1">1: Elegir destino</Link>
+          <Link className="crumb-active" to="/planificar/1">
+            1: Elegir destino
+          </Link>
         </div>
 
         <h6 className="pv1-step">Paso 1</h6>
@@ -65,9 +64,12 @@ export default function PlanificarViaje1() {
           </div>
 
           <div className="pv1-explore">
-            <p className="pv1-explore-text">Aún no estás seguro de dónde ir?</p>
-            <Link to="/explorar-destinos" className="pv1-explore-btn">
-              <span className="pin" aria-hidden>📍</span> Explorar destinos
+            <p className="pv1-explore-text">¿Aún no estás seguro de dónde ir?</p>
+            <Link to="/explorar" className="pv1-explore-btn">
+              <span className="pin" aria-hidden>
+                📍
+              </span>{" "}
+              Explorar destinos
             </Link>
           </div>
 
@@ -75,7 +77,7 @@ export default function PlanificarViaje1() {
 
           <div className="pv1-actions">
             <button type="submit" className="pv1-next">
-              Siguiente <span className="arrow" aria-hidden>›</span>
+              Siguiente <span className="arrow">›</span>
             </button>
           </div>
         </form>

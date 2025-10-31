@@ -1,46 +1,55 @@
 import React, { useEffect, useMemo, useState } from "react";
-import AutoDestinoGeo from "../../components/DestinationAutocomplete";
-import { destinosApi } from "../../services/destinosapi";
+import AutoDestinoGeo from "../../components/AutoDestinoGeo";
+import { destinosAppApi } from "../../services/destinosAppApi.js";
 import "./ExplorarDestinos.css";
 
 export default function ExplorarDestinos() {
   // Filtros
   const [countries, setCountries] = useState([]);
-  const [countryId, setCountryId] = useState("");             // code: "AR"
-  const [cityPicked, setCityPicked] = useState(null);          // objeto ciudad del autocomplete
-  const [q, setQ] = useState("");                              // texto libre de búsqueda
+  const [countryId, setCountryId] = useState(""); // acá guardamos el NOMBRE del país (p.ej. "Argentina")
+  const [cityPicked, setCityPicked] = useState(null); // objeto ciudad del autocomplete (puede venir de app o geodb)
+  const [q, setQ] = useState(""); // texto libre
 
   // Resultados
   const [results, setResults] = useState([]);
-  const [recs, setRecs] = useState([]);                        // “Viajes similares a los tuyos”
+  const [recs, setRecs] = useState([]); // “Viajes similares a los tuyos”
   const [loading, setLoading] = useState(false);
 
-  // Derivados
-  const queryToSearch = useMemo(() => (cityPicked?.name || q || "").trim(), [cityPicked, q]);
+  // Derivados (si eligen una ciudad del autocomplete, priorizo ese nombre)
+  const queryToSearch = useMemo(
+    () => (cityPicked?.name || q || "").trim(),
+    [cityPicked, q]
+  );
 
-  // Cargar países al inicio
+  // Carga inicial: populares + recomendaciones + países
   useEffect(() => {
     (async () => {
-      try {
-        const data = await destinosApi.listCountries({ limit: 250 });
-        setCountries(data?.data || []);
-      } catch (e) {
-        console.error(e);
-      }
+      await loadPopular();
+      await loadRecs();
+      // construir lista de países en base a los populares
+      buildCountriesFrom(results);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Populares + recomendaciones de arranque
+  // cuando cambian results por primera vez, armo países (en caso que el efecto anterior
+  // haya terminado después de setResults)
   useEffect(() => {
-    loadPopular();
-    loadRecs();
-  }, []);
+    if (results?.length) buildCountriesFrom(results);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results?.length]);
+
+  function buildCountriesFrom(list) {
+    const set = new Set((list || []).map((d) => d.pais).filter(Boolean));
+    setCountries(Array.from(set).sort());
+  }
 
   async function loadPopular() {
     try {
       setLoading(true);
-      const data = await destinosApi.popularCities({ minPopulation: 600000, limit: 12 });
-      setResults(data?.data || []);
+      // top destinos (catálogo curado)
+      const resp = await destinosAppApi.top({ limit: 12 });
+      setResults(resp?.data || []);
     } catch (e) {
       console.error(e);
       setResults([]);
@@ -51,8 +60,8 @@ export default function ExplorarDestinos() {
 
   async function loadRecs() {
     try {
-      const data = await destinosApi.popularCities({ minPopulation: 400000, limit: 8 });
-      setRecs(data?.data || []);
+      const resp = await destinosAppApi.top({ limit: 8 });
+      setRecs(resp?.data || []);
     } catch (e) {
       console.error(e);
       setRecs([]);
@@ -62,13 +71,14 @@ export default function ExplorarDestinos() {
   async function applyFilters() {
     try {
       setLoading(true);
-      const data = await destinosApi.searchCities({
-        q: queryToSearch || "a",                 // mínima query para obtener algo si no eligen ciudad
-        countryIds: countryId || undefined,
-        minPopulation: 10000,
-        limit: 12
+      // countryId es el nombre del país (ej: "España"). El servicio filtra por ILIKE.
+      const resp = await destinosAppApi.top({
+        country: countryId || undefined,
+        // Si querés que el texto libre influya, podríamos llamar a autocomplete
+        // y, si trae algo, volver a pedir top para ese país. Por ahora usamos sólo país.
+        limit: 12,
       });
-      setResults(data?.data || []);
+      setResults(resp?.data || []);
     } catch (e) {
       console.error(e);
       setResults([]);
@@ -87,11 +97,12 @@ export default function ExplorarDestinos() {
   return (
     <div className="ex-bg">
       <div className="ex-container">
-
         {/* Título + barra grande */}
         <h1 className="ex-title">Explorá tu próximo destino</h1>
         <div className="ex-searchbar">
-          <span className="ex-search-ico" aria-hidden>🔍</span>
+          <span className="ex-search-ico" aria-hidden>
+            🔍
+          </span>
           <input
             className="ex-search-input"
             placeholder="¿A dónde querés ir?"
@@ -111,8 +122,10 @@ export default function ExplorarDestinos() {
                 onChange={(e) => setCountryId(e.target.value)}
               >
                 <option value="">Todos los países</option>
-                {countries.map((c) => (
-                  <option key={c.code} value={c.code}>{c.name}</option>
+                {countries.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -122,54 +135,79 @@ export default function ExplorarDestinos() {
               <AutoDestinoGeo
                 label={null}
                 placeholder="Buscar ciudad..."
-                countryIds={countryId || undefined}
+                // countryIds aplica sólo al fallback GeoDB dentro del componente
+                countryIds={undefined}
                 defaultValue={cityPicked || undefined}
                 onSelect={setCityPicked}
               />
             </div>
 
-            {/* Chips decorativos como en la maqueta (no filtran en la API por ahora) */}
+            {/* Chips decorativos (si querés hacerlos reales, podemos mapearlos a season/climate) */}
             <div className="ex-filter-group">
               <label className="ex-label">Clima</label>
               <div className="ex-chips">
-                <button type="button" className="chip">Tropical</button>
-                <button type="button" className="chip">Mediterráneo</button>
-                <button type="button" className="chip">Templado</button>
-                <button type="button" className="chip">Frío</button>
-                <button type="button" className="chip">Desértico</button>
+                <button type="button" className="chip">
+                  Tropical
+                </button>
+                <button type="button" className="chip">
+                  Mediterráneo
+                </button>
+                <button type="button" className="chip">
+                  Templado
+                </button>
+                <button type="button" className="chip">
+                  Frío
+                </button>
+                <button type="button" className="chip">
+                  Desértico
+                </button>
               </div>
             </div>
 
             <div className="ex-filter-group">
               <label className="ex-label">Temporada</label>
               <div className="ex-chips">
-                <button type="button" className="chip">Verano</button>
-                <button type="button" className="chip">Otoño</button>
-                <button type="button" className="chip">Invierno</button>
-                <button type="button" className="chip">Primavera</button>
+                <button type="button" className="chip">
+                  Verano
+                </button>
+                <button type="button" className="chip">
+                  Otoño
+                </button>
+                <button type="button" className="chip">
+                  Invierno
+                </button>
+                <button type="button" className="chip">
+                  Primavera
+                </button>
               </div>
             </div>
 
-            <button className="ex-apply" onClick={applyFilters}>Aplicar filtros</button>
-            <button className="ex-clear" onClick={resetFilters}>Limpiar filtros</button>
+            <button className="ex-apply" onClick={applyFilters}>
+              Aplicar filtros
+            </button>
+            <button className="ex-clear" onClick={resetFilters}>
+              Limpiar filtros
+            </button>
           </aside>
 
           {/* Cards de resultados */}
           <section className="ex-results">
             {loading && <p className="muted">Cargando destinos...</p>}
-            {!loading && results.length === 0 && <p className="muted">No hay resultados.</p>}
+            {!loading && results.length === 0 && (
+              <p className="muted">No hay resultados.</p>
+            )}
 
             <div className="ex-grid">
-              {results.map((c) => (
-                <DestinationCard key={c.id} city={c} />
+              {results.map((d) => (
+                <DestinationCard key={d.id} destino={d} />
               ))}
             </div>
 
             {/* Recomendados */}
             <h2 className="ex-subtitle">Viajes similares a los tuyos</h2>
             <div className="ex-grid ex-grid-sm">
-              {recs.map((c) => (
-                <DestinationCard key={`rec-${c.id}`} city={c} small />
+              {recs.map((d) => (
+                <DestinationCard key={`rec-${d.id}`} destino={d} small />
               ))}
             </div>
           </section>
@@ -179,48 +217,61 @@ export default function ExplorarDestinos() {
   );
 }
 
-/* ---------- Card de destino ---------- */
+/* ---------- Card de destino (catálogo curado) ---------- */
 
-function DestinationCard({ city, small = false }) {
-  const name = city.name || city.city;
-  const region = city.region;
-  const country = city.country;
+function DestinationCard({ destino, small = false }) {
+  const name = destino.nombre;
+  const country = destino.pais;
+  const region = destino.region;
+  const rating = Number(destino.rating || 4.6).toFixed(1);
+  const price = destino.precio_ref_usd || 900;
 
-  // Imagen dinámica sin API key (Unsplash por keyword):
-  const imgUrl = `https://source.unsplash.com/600x400/?${encodeURIComponent(name)}%20city`;
-
-  // Rating/price solo visuales (derivados de población para evitar hardcode)
-  const pop = Number(city.population || 0);
-  const rating = (Math.min(5, 3.9 + (pop % 1000) / 1000 * 1.1)).toFixed(1);
-  const price = Math.max(300, Math.round(2500 - Math.min(2000, pop / 1000))); // USD referencial
+  // Imagen: si hay hero, la uso; si no, busco en Unsplash por nombre
+  const imgUrl =
+    destino.hero_image_url ||
+    `https://source.unsplash.com/600x400/?${encodeURIComponent(name)}%20city`;
 
   return (
     <article className={`ex-card ${small ? "sm" : ""}`}>
       <div className="ex-card-imgwrap">
         <img src={imgUrl} alt={name} loading="lazy" />
-        <button className="ex-fav" title="Guardar">♡</button>
+        <button className="ex-fav" title="Guardar">
+          ♡
+        </button>
       </div>
 
       <div className="ex-card-body">
         <div className="ex-card-row">
           <h3 className="ex-card-title">{name}</h3>
-          <div className="ex-badge"><span>⭐</span> {rating}</div>
+          <div className="ex-badge">
+            <span>⭐</span> {rating}
+          </div>
         </div>
-        <div className="ex-card-sub">{[country, region].filter(Boolean).join(" · ")}</div>
+        <div className="ex-card-sub">
+          {[country, region].filter(Boolean).join(" · ")}
+        </div>
 
-        {!small && (
-          <p className="ex-card-desc">
-            {region ? `Región ${region.toLowerCase()}. ` : ""}Ciudad para descubrir.
-          </p>
+        {!small && destino.descripcion && (
+          <p className="ex-card-desc">{destino.descripcion}</p>
         )}
 
         <div className="ex-card-tags">
-          {region && <span className="tag">{region}</span>}
-          {country && <span className="tag">{country}</span>}
+          {Array.isArray(destino.clima_tags) &&
+            destino.clima_tags.slice(0, 2).map((t, i) => (
+              <span key={`c-${i}`} className="tag">
+                {t}
+              </span>
+            ))}
+          {Array.isArray(destino.temporada_tags) &&
+            destino.temporada_tags.slice(0, 1).map((t, i) => (
+              <span key={`s-${i}`} className="tag">
+                {t}
+              </span>
+            ))}
         </div>
 
         <div className="ex-card-footer">
-          <div className="ex-price">USD {price.toLocaleString()}</div>
+          <div className="ex-price">USD {Number(price).toLocaleString()}</div>
           <button className="ex-more">Ver más</button>
         </div>
       </div>
