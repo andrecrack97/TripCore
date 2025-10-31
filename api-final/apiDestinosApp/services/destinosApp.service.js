@@ -1,5 +1,9 @@
 const db = require("../../db");
 
+// =============
+// CONSULTAS EXISTENTES
+// =============
+
 // Top destinos con filtros opcionales (country/season/climate)
 async function listTop({ limit = 12, country, season, climate }) {
   const params = [];
@@ -45,4 +49,49 @@ async function getById(id) {
   return rows[0] || null;
 }
 
-module.exports = { listTop, autocomplete, getById };
+// =================
+// NUEVAS CONSULTAS
+// =================
+
+// Obtener sugerencias de transportes
+async function getTransportes({ destino_id, limit = 3 }) {
+  const { rows } = await db.query(
+    `SELECT id, kind, provider, from_city, from_country, to_city, to_country,
+            duration_min, price_usd, carbon_kg, link_url, rating
+     FROM transportes
+     WHERE destino_id = $1
+     ORDER BY price_usd ASC
+     LIMIT $2;`,
+    [destino_id, limit]
+  );
+  return rows;
+}
+
+// Obtener sugerencias de hoteles
+async function getHoteles({ destino_id, limit = 3 }) {
+  const { rows } = await db.query(
+    `SELECT id, name, stars, rating, price_night_usd, address, image_url, link_url
+     FROM hoteles
+     WHERE destino_id = $1
+     ORDER BY price_night_usd ASC
+     LIMIT $2;`,
+    [destino_id, limit]
+  );
+  return rows;
+}
+
+// Obtener sugerencias de actividades
+async function getActividades({ destino_id, limit = 4 }) {
+  const { rows } = await db.query(
+    `SELECT id, title, category, duration_hours, price_usd,
+            meeting_point, image_url, link_url, rating
+     FROM actividades
+     WHERE destino_id = $1
+     ORDER BY rating DESC
+     LIMIT $2;`,
+    [destino_id, limit]
+  );
+  return rows;
+}
+
+module.exports = { listTop, autocomplete, getById, getTransportes, getHoteles, getActividades };
