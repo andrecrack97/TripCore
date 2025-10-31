@@ -1,134 +1,27 @@
-/* Colores base */
 :root{
-  --tc-primary: #6A00FF;         /* morado principal */
-  --tc-primary-600: #5a00db;
-  --tc-bg-grad-a: #BFA2FF;       /* fondo degradado */
-  --tc-bg-grad-b: #7da0ff;
-  --tc-text-900: #111;
-  --tc-text-600: #5f6368;
-  --tc-surface: #ffffff;
-  --tc-border: #e9e9ef;
-  --tc-shadow: 0 10px 30px rgba(17, 17, 17, 0.08);
+  --tc-primary:#6A00FF;
+  --tc-grad-a:#BFA2FF;
+  --tc-grad-b:#7da0ff;
+  --tc-border:#e9e9ef;
 }
-
-/* Fondo con degradado */
 .pv1-bg{
-  min-height: calc(100vh - 72px); /* deja espacio para el header */
-  background: linear-gradient(135deg, var(--tc-bg-grad-a), var(--tc-bg-grad-b));
-  padding: 28px 16px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  min-height:calc(100vh - 72px);
+  background:linear-gradient(135deg,var(--tc-grad-a),var(--tc-grad-b));
+  padding:28px 16px 40px;
 }
-
-/* Tarjeta principal */
 .pv1-card{
-  width: 100%;
-  max-width: 1080px;
-  background: var(--tc-surface);
-  border: 1px solid var(--tc-border);
-  border-radius: 10px;
-  box-shadow: var(--tc-shadow);
-  padding: 28px;
+  max-width:960px;margin:0 auto;background:#fff;border:1px solid var(--tc-border);
+  border-radius:16px; box-shadow:0 10px 30px rgba(17,17,17,.08); padding:22px 22px 26px;
 }
-
-/* Migas de pan */
-.pv1-breadcrumbs{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-.pv1-breadcrumbs .muted{ color: var(--tc-text-600); }
-.pv1-breadcrumbs .sep{ color: #bbb; }
-.pv1-breadcrumbs .crumb-active{
-  color: var(--tc-primary);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-/* Encabezados */
-.pv1-step{
-  color: var(--tc-text-600);
-  margin: 0 0 6px 0;
-  font-weight: 600;
-}
-.pv1-title{
-  margin: 0 0 22px 0;
-  font-size: 32px;
-  line-height: 1.15;
-  color: var(--tc-text-900);
-}
-
-/* Campos */
-.pv1-field{ margin-bottom: 18px; }
-.pv1-label{
-  display: block;
-  font-weight: 600;
-  color: var(--tc-text-900);
-  margin-bottom: 8px;
-}
-
-/* Integra con tu AutoDestinoGeo.css: los inputs ya tienen borde y focus.
-   Si querés que se vean más "apagados" como la maqueta, podés agregar: */
-.dest-input{
-  background: #f6f7fb;
-  border-color: #e5e7f0;
-}
-
-/* Explorar destinos */
-.pv1-explore{ margin: 18px 0 8px 0; }
-.pv1-explore-text{ color: var(--tc-text-600); margin: 0 0 10px 0; }
-.pv1-explore-btn{
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: #ede3ff;
-  color: var(--tc-primary);
-  border: 1px solid #e6dafc;
-  border-radius: 10px;
-  padding: 10px 14px;
-  text-decoration: none;
-  font-weight: 600;
-}
-.pv1-explore-btn:hover{ background:#e7dafd; }
-.pv1-explore-btn .pin{ font-size: 18px; }
-
-/* Error */
-.pv1-error{
-  margin-top: 8px;
-  color: #b00020;
-  background: #fde7ea;
-  border: 1px solid #f6c2ca;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-/* Acciones */
-.pv1-actions{
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-.pv1-next{
-  background: var(--tc-primary);
-  color: #fff;
-  border: 0;
-  border-radius: 999px;
-  padding: 12px 22px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(106, 0, 255, .25);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.pv1-next:hover{ background: var(--tc-primary-600); }
-.pv1-next .arrow{ font-size: 18px; line-height: 1; }
-
-@media (max-width: 640px){
-  .pv1-card{ padding: 20px; }
-  .pv1-title{ font-size: 26px; }
-}
+.pv1-breadcrumbs{ display:flex; align-items:center; gap:8px; font-size:13px; color:#666; margin-bottom:8px;}
+.crumb-active{ font-weight:700; color:#111; text-decoration:none; }
+.pv1-step{ margin:0; color:#6a00ff; text-transform:uppercase; letter-spacing:.08em; font-weight:800;}
+.pv1-title{ margin:6px 0 18px; }
+.pv1-field{ margin-bottom:16px; }
+.pv1-label{ display:block; font-weight:700; margin-bottom:8px; }
+.pv1-explore{ display:flex; align-items:center; gap:12px; margin:12px 0 18px;}
+.pv1-explore-btn{ display:inline-flex; align-items:center; gap:6px; padding:10px 12px; background:#f6f4ff; border-radius:10px; text-decoration:none; }
+.pv1-error{ color:#b00020; background:#fde7ea; border:1px solid #f6c6ce; padding:10px; border-radius:10px; margin-top:6px;}
+.pv1-actions{ display:flex; justify-content:flex-end; }
+.pv1-next{ background:#6a00ff; color:#fff; border:0; border-radius:999px; padding:12px 18px; font-weight:800; cursor:pointer; }
+.pv1-next:hover{ background:#5800db; }

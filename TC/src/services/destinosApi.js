@@ -1,44 +1,28 @@
-const express = require("express");
-const router = express.Router();
-const svc = require("../services/destinosApp.service");
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 
-// GET /api/destinos-app/top?country=Argentina&season=Verano&climate=Mediterráneo&limit=12
-router.get("/top", async (req, res) => {
-  try {
-    const { country, season, climate, limit } = req.query;
-    const data = await svc.listTop({
-      limit: Number(limit) || 12,
-      country,
-      season,
-      climate,
-    });
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
+async function httpGet(path, params = {}) {
+  const url = new URL(path, API_BASE);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && `${v}`.length) url.searchParams.set(k, v);
+  });
+  const res = await fetch(url.toString(), { headers: { "Content-Type": "application/json" } });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.message || `Error ${res.status}`);
   }
-});
+  return res.json();
+}
 
-// GET /api/destinos-app/autocomplete?q=bu&limit=8
-router.get("/autocomplete", async (req, res) => {
-  try {
-    const { q, limit } = req.query;
-    if (!q || !q.trim()) return res.status(400).json({ message: "Falta ?q=" });
-    const data = await svc.autocomplete({ q: q.trim(), limit: Number(limit) || 8 });
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-});
+export const destinosApi = {
+  // búsqueda de ciudades grandes (fallback)
+  searchCities: ({ q, countryIds, limit = 10, major = true }) =>
+    httpGet("/api/destinos/search", { q, countryIds, limit, major }),
 
-// GET /api/destinos-app/:id
-router.get("/:id", async (req, res) => {
-  try {
-    const data = await svc.getById(req.params.id);
-    if (!data) return res.status(404).json({ message: "Destino no encontrado" });
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
-  }
-});
+  // top ciudades grandes (opcional)
+  topCities: ({ minPopulation = 500000, limit = 12 }) =>
+    httpGet("/api/destinos/top", { minPopulation, limit }),
 
-module.exports = router;
+  getCityById: (id) => httpGet(`/api/destinos/cities/${id}`),
+  listCountries: ({ limit = 250 } = {}) =>
+    httpGet("/api/destinos/countries", { limit }),
+};

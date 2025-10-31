@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import useDebounce from "../hooks/useDebounce";
-import { destinosAppApi } from "../services/destinosAppApi";  // catálogo curado (tu BD)        // GeoDB (fallback)
+import { destinosAppApi } from "../services/destinosAppApi";  // catálogo curado
+import { destinosApi } from "../services/destinosApi";        // GeoDB (fallback)
 import "./AutoDestinoGeo.css";
 
 /**
@@ -8,7 +9,7 @@ import "./AutoDestinoGeo.css";
  * - label?: string
  * - placeholder?: string
  * - defaultValue?: { id, name, country, region }
- * - countryIds?: "AR,BR,US"  (afecta solo al fallback GeoDB)
+ * - countryIds?: "AR,BR,US"  (solo afecta al fallback GeoDB)
  * - onSelect: (cityObj) => void
  */
 function AutoDestinoGeo({
@@ -25,17 +26,12 @@ function AutoDestinoGeo({
   const debounced = useDebounce(query, 300);
   const wrapRef = useRef(null);
 
-  // si viene un defaultValue desde afuera, reflejarlo en el input
   useEffect(() => {
     if (defaultValue?.name) setQuery(defaultValue.name);
   }, [defaultValue?.name]);
 
-  const showDropdown = useMemo(
-    () => open && query.trim().length >= 2,
-    [open, query]
-  );
+  const showDropdown = useMemo(() => open && query.trim().length >= 2, [open, query]);
 
-  // cerrar dropdown al click afuera
   useEffect(() => {
     const onClick = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
@@ -55,68 +51,38 @@ function AutoDestinoGeo({
     (async () => {
       setLoading(true);
 
-      // Llamamos a AMBAS fuentes en paralelo y combinamos
-      const tasks = [
-        // catálogo curado (tu BD)
+      const [appList, geoList] = await Promise.all([
         destinosAppApi
           .autocomplete({ q, limit: 8 })
-          .then((res) => {
-            const list = (res?.data || []).map((d) => ({
-              source: "app",
-              id: d.id,
-              name: d.nombre,
-              country: d.pais,
-              region: d.region,
-            }));
-            console.log("[AutoDestino] app/autocomplete OK:", list);
-            return list;
-          })
-          .catch((e) => {
-            console.warn("[AutoDestino] app/autocomplete ERROR:", e);
-            return [];
-          }),
+          .then((res) => (res?.data || []).map((d) => ({
+            source: "app",
+            id: d.id,
+            name: d.nombre,
+            country: d.pais,
+            region: d.region,
+          })))
+          .catch(() => []),
 
-        // GeoDB fallback (solo ciudades grandes)
         destinosApi
-          .searchCities({
-            q,
-            countryIds,
-            limit: 8,
-            major: true, // fuerza pisos altos en el backend
-          })
-          .then((res) => {
-            const list = (res?.data || []).map((c) => ({
-              source: "geodb",
-              id: c.id,
-              name: c.name || c.city,
-              country: c.country,
-              region: c.region,
-            }));
-            console.log("[AutoDestino] geodb/search OK:", list);
-            return list;
-          })
-          .catch((e) => {
-            console.warn("[AutoDestino] geodb/search ERROR:", e);
-            return [];
-          }),
-      ];
+          .searchCities({ q, countryIds, limit: 8, major: true })
+          .then((res) => (res?.data || []).map((c) => ({
+            source: "geodb",
+            id: c.id,
+            name: c.name || c.city,
+            country: c.country,
+            region: c.region,
+          })))
+          .catch(() => []),
+      ]);
 
-      const results = await Promise.all(tasks);
-      let combined = [...results[0]];
-
-      // Si el catálogo trajo poco, completamos con GeoDB hasta 8
-      if (combined.length < 8) {
-        const room = 8 - combined.length;
-        combined = combined.concat(results[1].slice(0, room));
-      }
-
+      // App primero; si falta, completo con GeoDB hasta 8
+      let combined = [...appList];
+      if (combined.length < 8) combined = combined.concat(geoList.slice(0, 8 - combined.length));
       if (!cancelled) setItems(combined);
       setLoading(false);
     })();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [debounced, countryIds]);
 
   function handlePick(city) {
@@ -138,10 +104,7 @@ function AutoDestinoGeo({
         className="dest-input"
         placeholder={placeholder}
         value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-        }}
+        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         aria-autocomplete="list"
         aria-expanded={showDropdown ? "true" : "false"}
@@ -149,23 +112,18 @@ function AutoDestinoGeo({
       {showDropdown && (
         <div className="dest-dropdown" role="listbox">
           {loading && <div className="dest-item muted">Buscando...</div>}
-          {!loading && items.length === 0 && (
-            <div className="dest-item muted">Sin resultados</div>
-          )}
-          {!loading &&
-            items.map((c, idx) => (
-              <button
-                type="button"
-                key={`${c.source}-${c.id}-${idx}`}
-                className="dest-item"
-                onClick={() => handlePick(c)}
-              >
-                <div className="dest-item-title">{formatCity(c)}</div>
-                {c.source === "geodb" && (
-                  <div className="dest-item-sub">Sugerencia externa</div>
-                )}
-              </button>
-            ))}
+          {!loading && items.length === 0 && <div className="dest-item muted">Sin resultados</div>}
+          {!loading && items.map((c, idx) => (
+            <button
+              type="button"
+              key={`${c.source}-${c.id}-${idx}`}
+              className="dest-item"
+              onClick={() => handlePick(c)}
+            >
+              <div className="dest-item-title">{formatCity(c)}</div>
+              {c.source === "geodb" && <div className="dest-item-sub">Sugerencia externa</div>}
+            </button>
+          ))}
         </div>
       )}
     </div>

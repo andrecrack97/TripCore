@@ -66,10 +66,7 @@ export default function PlanificarViaje1() {
           <div className="pv1-explore">
             <p className="pv1-explore-text">¿Aún no estás seguro de dónde ir?</p>
             <Link to="/explorar" className="pv1-explore-btn">
-              <span className="pin" aria-hidden>
-                📍
-              </span>{" "}
-              Explorar destinos
+              <span className="pin" aria-hidden>📍</span> Explorar destinos
             </Link>
           </div>
 
