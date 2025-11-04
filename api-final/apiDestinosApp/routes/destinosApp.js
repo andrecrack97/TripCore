@@ -62,43 +62,12 @@ router.get("/:id/sugerencias", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Obtener transportes recomendados
-    const transportes = (
-      await pool.query(
-        `SELECT id, kind, provider, from_city, from_country, to_city, to_country,
-                duration_min, price_usd, carbon_kg, link_url, rating
-         FROM transportes
-         WHERE destino_id = $1
-         ORDER BY price_usd ASC
-         LIMIT 3;`,
-        [id]
-      )
-    ).rows;
-
-    // Obtener hoteles recomendados
-    const hoteles = (
-      await pool.query(
-        `SELECT id, name, stars, rating, price_night_usd, address, image_url, link_url
-         FROM hoteles
-         WHERE destino_id = $1
-         ORDER BY price_night_usd ASC
-         LIMIT 3;`,
-        [id]
-      )
-    ).rows;
-
-    // Obtener actividades recomendadas
-    const actividades = (
-      await pool.query(
-        `SELECT id, title, category, duration_hours, price_usd,
-                meeting_point, image_url, link_url, rating
-         FROM actividades
-         WHERE destino_id = $1
-         ORDER BY rating DESC
-         LIMIT 4;`,
-        [id]
-      )
-    ).rows;
+    // Usamos las funciones del service (evita depender de "pool" aquí)
+    const [transportes, hoteles, actividades] = await Promise.all([
+      svc.getTransportes({ destino_id: id, limit: 3 }),
+      svc.getHoteles({ destino_id: id, limit: 3 }),
+      svc.getActividades({ destino_id: id, limit: 4 }),
+    ]);
 
     res.json({ transportes, hoteles, actividades });
   } catch (error) {

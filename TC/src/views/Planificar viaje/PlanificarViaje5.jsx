@@ -4,6 +4,7 @@ import { destinosAppApi } from "../../services/destinosAppApi";
 import "./PlanificarViaje5.css";
 
 export default function PlanificarViaje5() {
+  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
   const [data, setData] = useState(null); // plan completo
   const [sugerencias, setSugerencias] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,9 +24,24 @@ export default function PlanificarViaje5() {
     (async () => {
       try {
         setLoading(true);
-        const resp = await fetch(
-          `${import.meta.env.VITE_API_BASE}/api/destinos-app/${data.destino.id}/sugerencias`
-        );
+        // Si el destino viene de GeoDB, buscamos el equivalente en el catálogo curado
+        let destinoId = data.destino.id;
+        if (data.destino.source && data.destino.source !== "app") {
+          try {
+            const res = await destinosAppApi.autocomplete({ q: data.destino.name, limit: 1 });
+            const candidate = (res?.data || [])[0];
+            if (candidate?.id) destinoId = candidate.id;
+          } catch (_) {
+            // si falla, seguimos con el id original (puede devolver vacío)
+          }
+        }
+
+        if (!destinoId) throw new Error("Destino inválido");
+        const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias`);
+        if (!resp.ok) {
+          const msg = await resp.text().catch(() => "");
+          throw new Error(msg || `HTTP ${resp.status}`);
+        }
         const json = await resp.json();
         setSugerencias(json);
       } catch (e) {
@@ -54,7 +70,7 @@ export default function PlanificarViaje5() {
   const resumen = [
     { label: "Origen", value: origenNombre },
     { label: "Destino", value: destinoNombre },
-    { label: "Fechas", value: `${data.fechaIda || "-"} → ${data.fechaVuelta || "-"}` },
+    { label: "Fechas", value: `${data.fecha_salida || "-"} → ${data.fecha_vuelta || "-"}` },
     { label: "Presupuesto", value: `USD ${presupuesto.toLocaleString()}` },
   ];
 
