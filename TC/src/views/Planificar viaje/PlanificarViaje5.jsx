@@ -1,74 +1,75 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { destinosAppApi } from "../../services/destinosAppApi";
+import { viajesApi } from "../../services/viajesApi";       // <— nuevo servicio
 import "./PlanificarViaje5.css";
+
+function diffNights(startISO, endISO) {
+  if (!startISO || !endISO) return 0;
+  const start = new Date(startISO);
+  const end = new Date(endISO);
+  const ms = end.getTime() - start.getTime();
+  const nights = Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24))); // Restando días
+  return Number.isFinite(nights) ? nights : 0;
+}
+
 
 export default function PlanificarViaje5() {
   const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
-  const [data, setData] = useState(null); // plan completo
-  const [sugerencias, setSugerencias] = useState(null);
+  const nav = useNavigate();
+
+  const [plan, setPlan] = useState(null);
+  const [sug, setSug] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
+  const [pick, setPick] = useState({
+    transporte_id: null,
+    hotel_id: null,
+    actividades_ids: [],
+  });
+
+  // cargar plan local
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("planificarViaje");
-      if (raw) setData(JSON.parse(raw));
-    } catch (err) {
-      console.error(err);
-    }
+    const raw = localStorage.getItem("planificarViaje");
+    if (raw) setPlan(JSON.parse(raw));
   }, []);
 
+  const nights = useMemo(
+    () => diffNights(plan?.fecha_salida || plan?.fechaIda, plan?.fecha_vuelta || plan?.fechaVuelta),
+    [plan?.fecha_salida, plan?.fecha_vuelta, plan?.fechaIda, plan?.fechaVuelta]
+  );
+
+  // cargar sugerencias (resuelve id si vino de GeoDB)
   useEffect(() => {
-    if (!data?.destino) return;
     (async () => {
+      if (!plan) return;
       try {
         setLoading(true);
         setError("");
 
-        // Intentar mapear a destino curado por nombre si vino de GeoDB
-        let destinoId = data.destino.id;
-        if (data.destino.source && data.destino.source !== "app") {
-          try {
-            const res = await destinosAppApi.autocomplete({ q: data.destino.name, limit: 1 });
-            const candidate = (res?.data || [])[0];
-            if (candidate?.id) destinoId = candidate.id;
-          } catch (_) {}
+        let destinoId = plan.destino?.id;
+        if (!destinoId && plan.destino?.nombre && plan.destino?.pais) {
+          const r = await destinosAppApi
+            .resolve(plan.destino.nombre, plan.destino.pais)
+            .catch(() => null);
+          if (r?.data?.id) {
+            destinoId = r.data.id;
+            // opcional: persistimos el id en el viaje
+            if (plan.id_viaje) await viajesApi.patch(plan.id_viaje, { destino_id: destinoId });
+            const newPlan = { ...plan, destino: { ...plan.destino, id: destinoId } };
+            localStorage.setItem("planificarViaje", JSON.stringify(newPlan));
+            setPlan(newPlan);
+          }
         }
 
-        const tryByDestinoId = async () => {
-          if (!destinoId) return null;
-          const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias`);
-          if (!resp.ok) return null;
-          const json = await resp.json().catch(() => null);
-          return json;
-        };
+        if (!destinoId) throw new Error("No se pudo resolver el destino");
 
-        const tryByCountry = async () => {
-          const country = data.destino.country || data.destino.pais || "";
-          if (!country) return null;
-          const url = new URL(`${API_BASE}/api/destinos-app/sugerencias`);
-          url.searchParams.set("country", country);
-          const resp = await fetch(url.toString());
-          if (!resp.ok) return null;
-          const json = await resp.json().catch(() => null);
-          return json;
-        };
-
-        // 1) Por destino curado si existe; 2) Fallback por país
-        let result = await tryByDestinoId();
-        const isEmpty = !result || (
-          (!result.transportes || result.transportes.length === 0) &&
-          (!result.hoteles || result.hoteles.length === 0) &&
-          (!result.actividades || result.actividades.length === 0)
-        );
-        if (isEmpty) {
-          const byCountry = await tryByCountry();
-          if (byCountry) result = byCountry;
-        }
-
-        if (!result) throw new Error("Sin sugerencias");
-        setSugerencias(result);
+        const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        setSug(json);
       } catch (e) {
         console.error(e);
         setError("No se pudieron cargar las sugerencias.");
@@ -76,28 +77,48 @@ export default function PlanificarViaje5() {
         setLoading(false);
       }
     })();
-  }, [data?.destino?.id, data?.destino?.country, data?.destino?.pais]);
+  }, [plan]);
 
-  if (!data)
-    return (
-      <div className="pv5-bg">
-        <div className="pv5-card">
-          <h2>No se encontró el plan de viaje.</h2>
-          <Link to="/planificar/1">Volver al inicio</Link>
-        </div>
-      </div>
-    );
+  // helpers de selección
+  const setTransporte = (id) => setPick((p) => ({ ...p, transporte_id: id }));
+  const setHotel = (id) => setPick((p) => ({ ...p, hotel_id: id }));
+  const toggleAct = (id) =>
+    setPick((p) => ({
+      ...p,
+      actividades_ids: p.actividades_ids.includes(id)
+        ? p.actividades_ids.filter((x) => x !== id)
+        : [...p.actividades_ids, id],
+    }));
 
-  const destinoNombre = data.destino?.nombre || data.destino?.name;
-  const origenNombre = data.origen?.nombre || data.origen?.name;
-  const presupuesto = Number(data.presupuesto || 0);
+  // subtotales y total
+  const transporteSel = sug?.transportes?.find((t) => t.id === pick.transporte_id);
+  const hotelSel = sug?.hoteles?.find((h) => h.id === pick.hotel_id);
+  const actsSel = sug?.actividades?.filter((a) => pick.actividades_ids.includes(a.id)) || [];
 
-  const resumen = [
-    { label: "Origen", value: origenNombre },
-    { label: "Destino", value: destinoNombre },
-    { label: "Fechas", value: `${data.fecha_salida || "-"} → ${data.fecha_vuelta || "-"}` },
-    { label: "Presupuesto", value: `USD ${presupuesto.toLocaleString()}` },
-  ];
+  const subtTransporte = transporteSel?.price_usd || 0;
+  const subtHotel = (hotelSel?.price_night_usd || 0) * nights;         // 👈 noches
+  const subtActiv = actsSel.reduce((acc, a) => acc + (a.price_usd || 0), 0);
+  const total = subtTransporte + subtHotel + subtActiv;
+
+  async function guardar() {
+    try {
+      if (!plan?.id_viaje) throw new Error("Falta id del viaje");
+      setSaving(true);
+      await viajesApi.patch(plan.id_viaje, pick);
+      await viajesApi.confirm(plan.id_viaje);
+      nav("/mis-viajes"); // ruta final
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!plan) return null;
+
+  const destinoNombre = plan.destino?.nombre || plan.destino?.name || "-";
+  const origenNombre = plan.origen?.nombre || plan.origen?.name || "-";
+  const presupuesto = Number(plan.presupuesto || plan.presupuesto_total || 0);
 
   return (
     <div className="pv5-bg">
@@ -109,124 +130,124 @@ export default function PlanificarViaje5() {
         </div>
 
         <h1 className="pv5-title">Sugerencias Inteligentes</h1>
-        <p className="pv5-subtitle">
-          Aquí tenés un plan sugerido basado en tus preferencias.
-        </p>
 
-        {/* --- Resumen del viaje --- */}
+        {/* Resumen */}
         <div className="pv5-summary">
-          {resumen.map((r) => (
-            <div key={r.label} className="pv5-summary-item">
-              <strong>{r.label}</strong>
-              <span>{r.value}</span>
-            </div>
-          ))}
+          <div className="pv5-summary-item"><strong>Origen</strong><span>{origenNombre}</span></div>
+          <div className="pv5-summary-item"><strong>Destino</strong><span>{destinoNombre}</span></div>
+          <div className="pv5-summary-item"><strong>Fechas</strong><span>{(plan.fecha_salida||plan.fechaIda||"-")} → {(plan.fecha_vuelta||plan.fechaVuelta||"-")}</span></div>
+          <div className="pv5-summary-item"><strong>Presupuesto</strong><span>USD {presupuesto.toLocaleString()}</span></div>
         </div>
 
-        {loading && <p className="muted">Cargando sugerencias...</p>}
+        {loading && <p className="muted">Cargando sugerencias…</p>}
         {error && <p className="pv5-error">{error}</p>}
 
-        {!loading && sugerencias && (
+        {!loading && !error && sug && (
           <>
-            {/* --- Transporte sugerido --- */}
+            {/* Transporte */}
             <section className="pv5-section">
               <h2>Transporte sugerido</h2>
-              {sugerencias.transportes?.map((t) => (
+              {sug.transportes?.map((t) => (
                 <div key={t.id} className="pv5-transport">
                   <div>
-                    <b>{t.provider}</b> – {t.kind === "flight" ? "Vuelo" : t.kind}
-                    <div className="muted">
-                      {t.from_city} → {t.to_city} ({Math.round(t.duration_min / 60)}h)
-                    </div>
+                    <b>{t.provider}</b> — {t.kind === "flight" ? "Vuelo" : t.kind}
+                    <div className="muted">{t.from_city} → {t.to_city} ({Math.round((t.duration_min || 0)/60)}h)</div>
                   </div>
                   <div className="pv5-price">USD {t.price_usd}</div>
-                  <a href={t.link_url} target="_blank" rel="noreferrer" className="pv5-btn-small">
-                    Reservar
-                  </a>
+                  <button
+                    onClick={() => setTransporte(t.id)}
+                    className="pv5-btn-small"
+                    style={{ background: pick.transporte_id === t.id ? "#5800db" : "var(--tc-primary)" }}
+                  >
+                    {pick.transporte_id === t.id ? "Seleccionado" : "Reservar"}
+                  </button>
                 </div>
               ))}
             </section>
 
-            {/* --- Alojamiento --- */}
+            {/* Hoteles */}
             <section className="pv5-section">
               <h2>Alojamiento recomendado</h2>
               <div className="pv5-grid">
-                {sugerencias.hoteles?.map((h) => (
-                  <div key={h.id} className="pv5-hotel-card">
-                    <img src={h.image_url} alt={h.name} loading="lazy" />
-                    <div className="pv5-hotel-body">
-                      <h3>{h.name}</h3>
-                      <p>
-                        {h.stars ?? ""}★ – {Number.isFinite(Number(h.rating)) ? Number(h.rating).toFixed(1) : "-"}
-                      </p>
-                      <div className="pv5-price">USD {h.price_night_usd} / noche</div>
-                      <a href={h.link_url} target="_blank" rel="noreferrer" className="pv5-btn-small">
-                        Ver más
-                      </a>
+                {sug.hoteles?.map((h) => {
+                  const sel = pick.hotel_id === h.id;
+                  return (
+                    <div key={h.id} className="pv5-hotel-card" style={{ border: sel ? "2px solid var(--tc-primary)" : "1px solid var(--tc-border)" }}>
+                      <img src={h.image_url} alt={h.name} loading="lazy" />
+                      <div className="pv5-hotel-body">
+                        <h3>{h.name}</h3>
+                        <p>{h.stars ?? ""}★ — {Number.isFinite(Number(h.rating)) ? Number(h.rating).toFixed(1) : "-"}</p>
+                        <div className="pv5-price">
+                          USD {h.price_night_usd} / noche · {nights} noche{s => nights===1 ? "" : "s"}
+                        </div>
+                        <div className="pv5-price muted">Subtotal: USD {(h.price_night_usd || 0) * nights}</div>
+                        <button
+                          className="pv5-btn-small"
+                          onClick={() => setHotel(h.id)}
+                          style={{ background: sel ? "#5800db" : "var(--tc-primary)" }}
+                        >
+                          {sel ? "Seleccionado" : "Reservar"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
-            {/* --- Actividades --- */}
+            {/* Actividades */}
             <section className="pv5-section">
               <h2>Actividades sugeridas</h2>
               <div className="pv5-grid">
-                {sugerencias.actividades?.map((a) => (
-                  <div key={a.id} className="pv5-activity-card">
-                    <img src={a.image_url} alt={a.title} loading="lazy" />
-                    <div className="pv5-activity-body">
-                      <h3>{a.title}</h3>
-                      <p className="muted">
-                        {a.duration_hours} h · USD {a.price_usd}
-                      </p>
-                      <a href={a.link_url} target="_blank" rel="noreferrer" className="pv5-btn-small">
-                        Agregar al itinerario
-                      </a>
+                {sug.actividades?.map((a) => {
+                  const sel = pick.actividades_ids.includes(a.id);
+                  return (
+                    <div key={a.id} className="pv5-activity-card" style={{ border: sel ? "2px solid var(--tc-primary)" : "1px solid var(--tc-border)" }}>
+                      <img src={a.image_url} alt={a.title} loading="lazy" />
+                      <div className="pv5-activity-body">
+                        <h3>{a.title}</h3>
+                        <p className="muted">{a.duration_hours} h · USD {a.price_usd}</p>
+                        <button
+                          onClick={() => toggleAct(a.id)}
+                          className="pv5-btn-small"
+                          style={{ background: sel ? "#5800db" : "var(--tc-primary)" }}
+                        >
+                          {sel ? "Agregada" : "Agregar al itinerario"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
-            {/* --- Presupuesto --- */}
+            {/* Presupuesto */}
             <section className="pv5-section">
               <h2>Resumen de presupuesto</h2>
               <div className="pv5-budget">
-                <div>
-                  Transporte: USD{" "}
-                  {sugerencias.transportes?.[0]?.price_usd || 0}
-                </div>
-                <div>
-                  Alojamiento: USD{" "}
-                  {sugerencias.hoteles?.[0]?.price_night_usd || 0}
-                </div>
-                <div>
-                  Actividades: USD{" "}
-                  {sugerencias.actividades
-                    ?.slice(0, 2)
-                    .reduce((a, c) => a + (c.price_usd || 0), 0) || 0}
-                </div>
+                <div>Transporte: USD {subtTransporte}</div>
+                <div>Alojamiento: USD {subtHotel} <span className="muted">( {nights} noche{nights===1?"":"s"} )</span></div>
+                <div>Actividades: USD {subtActiv}</div>
+                <hr />
+                <strong>Total estimado: USD {total}</strong>
+                <span className="muted">Quedan USD {(presupuesto - total).toFixed(2)} de tu presupuesto</span>
               </div>
             </section>
 
-            {/* --- Mapa placeholder --- */}
+            {/* Mapa placeholder */}
             <section className="pv5-section">
               <h2>Mapa interactivo</h2>
-              <div className="pv5-map">
-                <p className="muted">🗺️ Vista previa del itinerario (placeholder)</p>
-              </div>
+              <div className="pv5-map"><p className="muted">🗺️ Vista previa del itinerario</p></div>
             </section>
           </>
         )}
 
-        {/* --- Botones finales --- */}
+        {/* Acciones */}
         <div className="pv5-actions">
-          <Link to="/planificar/4" className="pv5-back">
-            ← Anterior
-          </Link>
-          <button className="pv5-confirm">Guardar itinerario</button>
+          <Link to="/planificar/4" className="pv5-back">← Anterior</Link>
+          <button className="pv5-confirm" onClick={guardar} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar itinerario"}
+          </button>
         </div>
       </div>
     </div>
