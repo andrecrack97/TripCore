@@ -43,13 +43,24 @@ router.get("/autocomplete", async (req, res) => {
 // ============================
 // Devuelve un destino completo (detalles de la base de datos)
 // GET /api/destinos-app/:id
-router.get("/:id", async (req, res) => {
+router.get("/sugerencias", async (req, res) => {
   try {
-    const data = await svc.getById(req.params.id);
-    if (!data) return res.status(404).json({ message: "Destino no encontrado" });
-    res.json({ data });
-  } catch (e) {
-    res.status(500).json({ message: e.message });
+    const { country } = req.query;
+    if (!country || !country.trim()) {
+      return res.status(400).json({ message: "Falta ?country=" });
+    }
+
+    const likeCountry = `%${country.trim()}%`;
+    const [transportes, hoteles, actividades] = await Promise.all([
+      svc.getTransportesByCountry({ country: likeCountry, limit: 3 }),
+      svc.getHotelesByCountry({ country: likeCountry, limit: 3 }),
+      svc.getActividadesByCountry({ country: likeCountry, limit: 4 }),
+    ]);
+
+    res.json({ transportes, hoteles, actividades });
+  } catch (error) {
+    console.error("❌ Error en /sugerencias?country:", error);
+    res.status(500).json({ message: "Error al obtener sugerencias por país" });
   }
 });
 
@@ -73,6 +84,21 @@ router.get("/:id/sugerencias", async (req, res) => {
   } catch (error) {
     console.error("❌ Error en /sugerencias:", error);
     res.status(500).json({ message: "Error al obtener sugerencias" });
+  }
+});
+
+// ============================
+// RUTA: /api/destinos-app/:id
+// ============================
+// Devuelve un destino completo (detalles de la base de datos)
+// GET /api/destinos-app/:id
+router.get("/:id", async (req, res) => {
+  try {
+    const data = await svc.getById(req.params.id);
+    if (!data) return res.status(404).json({ message: "Destino no encontrado" });
+    res.json({ data });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
   }
 });
 

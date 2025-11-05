@@ -20,30 +20,55 @@ export default function PlanificarViaje5() {
   }, []);
 
   useEffect(() => {
-    if (!data?.destino?.id) return;
+    if (!data?.destino) return;
     (async () => {
       try {
         setLoading(true);
-        // Si el destino viene de GeoDB, buscamos el equivalente en el catálogo curado
+        setError("");
+
+        // Intentar mapear a destino curado por nombre si vino de GeoDB
         let destinoId = data.destino.id;
         if (data.destino.source && data.destino.source !== "app") {
           try {
             const res = await destinosAppApi.autocomplete({ q: data.destino.name, limit: 1 });
             const candidate = (res?.data || [])[0];
             if (candidate?.id) destinoId = candidate.id;
-          } catch (_) {
-            // si falla, seguimos con el id original (puede devolver vacío)
-          }
+          } catch (_) {}
         }
 
-        if (!destinoId) throw new Error("Destino inválido");
-        const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias`);
-        if (!resp.ok) {
-          const msg = await resp.text().catch(() => "");
-          throw new Error(msg || `HTTP ${resp.status}`);
+        const tryByDestinoId = async () => {
+          if (!destinoId) return null;
+          const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias`);
+          if (!resp.ok) return null;
+          const json = await resp.json().catch(() => null);
+          return json;
+        };
+
+        const tryByCountry = async () => {
+          const country = data.destino.country || data.destino.pais || "";
+          if (!country) return null;
+          const url = new URL(`${API_BASE}/api/destinos-app/sugerencias`);
+          url.searchParams.set("country", country);
+          const resp = await fetch(url.toString());
+          if (!resp.ok) return null;
+          const json = await resp.json().catch(() => null);
+          return json;
+        };
+
+        // 1) Por destino curado si existe; 2) Fallback por país
+        let result = await tryByDestinoId();
+        const isEmpty = !result || (
+          (!result.transportes || result.transportes.length === 0) &&
+          (!result.hoteles || result.hoteles.length === 0) &&
+          (!result.actividades || result.actividades.length === 0)
+        );
+        if (isEmpty) {
+          const byCountry = await tryByCountry();
+          if (byCountry) result = byCountry;
         }
-        const json = await resp.json();
-        setSugerencias(json);
+
+        if (!result) throw new Error("Sin sugerencias");
+        setSugerencias(result);
       } catch (e) {
         console.error(e);
         setError("No se pudieron cargar las sugerencias.");
@@ -51,7 +76,7 @@ export default function PlanificarViaje5() {
         setLoading(false);
       }
     })();
-  }, [data?.destino?.id]);
+  }, [data?.destino?.id, data?.destino?.country, data?.destino?.pais]);
 
   if (!data)
     return (
@@ -131,7 +156,9 @@ export default function PlanificarViaje5() {
                     <img src={h.image_url} alt={h.name} loading="lazy" />
                     <div className="pv5-hotel-body">
                       <h3>{h.name}</h3>
-                      <p>{h.stars}★ – {h.rating.toFixed(1)}</p>
+                      <p>
+                        {h.stars ?? ""}★ – {Number.isFinite(Number(h.rating)) ? Number(h.rating).toFixed(1) : "-"}
+                      </p>
                       <div className="pv5-price">USD {h.price_night_usd} / noche</div>
                       <a href={h.link_url} target="_blank" rel="noreferrer" className="pv5-btn-small">
                         Ver más

@@ -94,4 +94,48 @@ async function getActividades({ destino_id, limit = 4 }) {
   return rows;
 }
 
-module.exports = { listTop, autocomplete, getById, getTransportes, getHoteles, getActividades };
+// ==============================
+// Variantes por país (fallback)
+// ==============================
+async function getTransportesByCountry({ country, limit = 3 }) {
+  const { rows } = await db.query(
+    `SELECT t.id, t.kind, t.provider, t.from_city, t.from_country, t.to_city, t.to_country,
+            t.duration_min, t.price_usd, t.carbon_kg, t.link_url, t.rating
+     FROM transportes t
+     JOIN destinos d ON d.id = t.destino_id
+     WHERE d.pais ILIKE $1
+     ORDER BY t.price_usd ASC
+     LIMIT $2;`,
+    [country, limit]
+  );
+  return rows;
+}
+
+async function getHotelesByCountry({ country, limit = 3 }) {
+  const { rows } = await db.query(
+    `SELECT h.id, h.name, h.stars, h.rating, h.price_night_usd, h.address, h.image_url, h.link_url
+     FROM hoteles h
+     JOIN destinos d ON d.id = h.destino_id
+     WHERE d.pais ILIKE $1
+     ORDER BY h.price_night_usd ASC
+     LIMIT $2;`,
+    [country, limit]
+  );
+  return rows;
+}
+
+async function getActividadesByCountry({ country, limit = 4 }) {
+  const { rows } = await db.query(
+    `SELECT a.id, a.title, a.category, a.duration_hours, a.price_usd,
+            a.meeting_point, a.image_url, a.link_url, a.rating
+     FROM actividades a
+     JOIN destinos d ON d.id = a.destino_id
+     WHERE d.pais ILIKE $1
+     ORDER BY a.rating DESC
+     LIMIT $2;`,
+    [country, limit]
+  );
+  return rows;
+}
+
+module.exports = { listTop, autocomplete, getById, getTransportes, getHoteles, getActividades, getTransportesByCountry, getHotelesByCountry, getActividadesByCountry };
