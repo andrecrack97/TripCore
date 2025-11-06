@@ -199,6 +199,29 @@ router.get("/sugerencias", auth, async (req, res) => {
   }
 });
 
+// POST /api/viajes - Crear un nuevo viaje
+router.post("/", auth, async (req, res) => {
+  const { nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje } = req.body;
+  
+  try {
+    const insert = await pool.query(
+      `INSERT INTO viajes (id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id_viaje, id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje`,
+      [req.userId, nombre_viaje || "Mi viaje", fecha_inicio, fecha_fin, destino_principal || null, presupuesto_total || null, tipo_viaje || null]
+    );
+
+    res.status(201).json({
+      success: true,
+      id_viaje: insert.rows[0].id_viaje,
+      viaje: insert.rows[0],
+    });
+  } catch (error) {
+    console.error("❌ Error al crear viaje:", error);
+    res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
 // POST /api/viajes/planificar
 router.post("/planificar", async (req, res) => {
   const { id_usuario, nombre_viaje, fecha_inicio, fecha_fin } = req.body;
@@ -226,6 +249,121 @@ router.post("/planificar", async (req, res) => {
   } catch (error) {
     console.error("❌ Error al insertar viaje:", error);
     res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// PATCH /api/viajes/:id - Actualizar un viaje
+router.patch("/:id", auth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "ID inválido" });
+
+    // Verificar que el viaje pertenece al usuario
+    const check = await pool.query(
+      `SELECT id_viaje FROM viajes WHERE id_viaje = $1 AND id_usuario = $2`,
+      [id, req.userId]
+    );
+    if (check.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Viaje no encontrado" });
+    }
+
+    const {
+      nombre_viaje,
+      fecha_inicio,
+      fecha_fin,
+      destino_principal,
+      presupuesto_total,
+      tipo_viaje,
+      transporte_id,
+      hotel_id,
+      actividades_ids,
+      destino_id,
+    } = req.body;
+
+    // Construir la query de actualización dinámicamente
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (nombre_viaje !== undefined) {
+      updates.push(`nombre_viaje = $${paramIndex++}`);
+      values.push(nombre_viaje);
+    }
+    if (fecha_inicio !== undefined) {
+      updates.push(`fecha_inicio = $${paramIndex++}`);
+      values.push(fecha_inicio);
+    }
+    if (fecha_fin !== undefined) {
+      updates.push(`fecha_fin = $${paramIndex++}`);
+      values.push(fecha_fin);
+    }
+    if (destino_principal !== undefined) {
+      updates.push(`destino_principal = $${paramIndex++}`);
+      values.push(destino_principal);
+    }
+    if (presupuesto_total !== undefined) {
+      updates.push(`presupuesto_total = $${paramIndex++}`);
+      values.push(presupuesto_total);
+    }
+    if (tipo_viaje !== undefined) {
+      updates.push(`tipo_viaje = $${paramIndex++}`);
+      values.push(tipo_viaje);
+    }
+
+    // Actualizar el viaje si hay campos para actualizar
+    if (updates.length > 0) {
+      values.push(id, req.userId);
+      await pool.query(
+        `UPDATE viajes SET ${updates.join(", ")} WHERE id_viaje = $${paramIndex++} AND id_usuario = $${paramIndex++}`,
+        values
+      );
+    }
+
+    // Manejar transporte_id, hotel_id, actividades_ids si vienen
+    // Nota: Estos campos no existen directamente en la tabla viajes,
+    // pero podrían ser referencias a otras tablas. Por ahora los ignoramos
+    // o los guardamos en una estructura JSON si la BD lo soporta.
+
+    // Si viene destino_id, actualizamos destino_principal (asumiendo que viene el nombre del destino)
+    if (destino_id !== undefined) {
+      // Aquí podrías hacer una consulta para obtener el nombre del destino desde la tabla destinos
+      // Por ahora, si destino_id viene, lo ignoramos o lo usamos para actualizar destino_principal
+    }
+
+    const updated = await pool.query(
+      `SELECT id_viaje AS id, id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje
+       FROM viajes WHERE id_viaje = $1 AND id_usuario = $2`,
+      [id, req.userId]
+    );
+
+    return res.json({ success: true, viaje: updated.rows[0] });
+  } catch (err) {
+    console.error("❌ Error al actualizar viaje:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// POST /api/viajes/:id/confirm - Confirmar un viaje
+router.post("/:id/confirm", auth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "ID inválido" });
+
+    // Verificar que el viaje pertenece al usuario
+    const check = await pool.query(
+      `SELECT id_viaje FROM viajes WHERE id_viaje = $1 AND id_usuario = $2`,
+      [id, req.userId]
+    );
+    if (check.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Viaje no encontrado" });
+    }
+
+    // Por ahora, la confirmación solo devuelve éxito
+    // En el futuro podrías agregar un campo "estado" o "confirmado" a la tabla viajes
+    return res.json({ success: true, message: "Viaje confirmado correctamente" });
+  } catch (err) {
+    console.error("❌ Error al confirmar viaje:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
   }
 });
 

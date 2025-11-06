@@ -30,10 +30,18 @@ export default function PlanificarViaje5() {
     actividades_ids: [],
   });
 
-  // cargar plan local
+  // cargar plan local (NO crear viaje aquí, se crea al guardar)
   useEffect(() => {
-    const raw = localStorage.getItem("planificarViaje");
-    if (raw) setPlan(JSON.parse(raw));
+    try {
+      const raw = localStorage.getItem("planificarViaje");
+      if (!raw) return;
+      
+      const planData = JSON.parse(raw);
+      setPlan(planData);
+    } catch (e) {
+      console.error("Error al cargar plan:", e);
+      setError("Error al cargar el plan del viaje.");
+    }
   }, []);
 
   const nights = useMemo(
@@ -50,29 +58,87 @@ export default function PlanificarViaje5() {
         setError("");
 
         let destinoId = plan.destino?.id;
+        let currentPlan = plan;
+
+        // Resolver destino si no tiene ID
         if (!destinoId && plan.destino?.nombre && plan.destino?.pais) {
-          const r = await destinosAppApi
-            .resolve(plan.destino.nombre, plan.destino.pais)
-            .catch(() => null);
-          if (r?.data?.id) {
-            destinoId = r.data.id;
-            // opcional: persistimos el id en el viaje
-            if (plan.id_viaje) await viajesApi.patch(plan.id_viaje, { destino_id: destinoId });
-            const newPlan = { ...plan, destino: { ...plan.destino, id: destinoId } };
-            localStorage.setItem("planificarViaje", JSON.stringify(newPlan));
-            setPlan(newPlan);
+          try {
+            const r = await destinosAppApi.resolve(plan.destino.nombre, plan.destino.pais);
+            if (r?.data?.id) {
+              destinoId = r.data.id;
+              currentPlan = { ...plan, destino: { ...plan.destino, id: destinoId } };
+              localStorage.setItem("planificarViaje", JSON.stringify(currentPlan));
+              setPlan(currentPlan);
+            }
+          } catch (e) {
+            console.warn("No se pudo resolver el destino por nombre/pais:", e);
           }
         }
 
-        if (!destinoId) throw new Error("No se pudo resolver el destino");
+        // Si aún no tenemos destinoId, intentar buscar por nombre
+        if (!destinoId) {
+          const destinoNombre = plan.destino?.nombre || plan.destino?.name;
+          if (destinoNombre) {
+            try {
+              // Buscar en el autocomplete para obtener el ID
+              const resp = await fetch(`${API_BASE}/api/destinos-app/autocomplete?q=${encodeURIComponent(destinoNombre)}&limit=5`);
+              if (resp.ok) {
+                const data = await resp.json();
+                const destinoEncontrado = data.data?.find(d => 
+                  d.nombre?.toLowerCase() === destinoNombre.toLowerCase() ||
+                  d.nombre?.toLowerCase().includes(destinoNombre.toLowerCase())
+                );
+                if (destinoEncontrado?.id) {
+                  destinoId = destinoEncontrado.id;
+                  currentPlan = { ...plan, destino: { ...plan.destino, id: destinoId } };
+                  localStorage.setItem("planificarViaje", JSON.stringify(currentPlan));
+                  setPlan(currentPlan);
+                }
+              }
+            } catch (e) {
+              console.warn("No se pudo buscar destino por autocomplete:", e);
+            }
+          }
+        }
 
-        const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        // Cargar sugerencias usando el destino_id
+        if (!destinoId) {
+          throw new Error("No se pudo obtener el ID del destino. Por favor, selecciona un destino válido.");
+        }
+
+        const token = localStorage.getItem("token");
+        const headers = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        // Llamar al endpoint de sugerencias con el destino_id
+        // Pasamos origen si está disponible para filtrar transportes
+        const origin = encodeURIComponent(
+          (plan.origen?.nombre || plan.origen?.name || plan.origen?.ciudad || "").toString()
+        );
+        const qs = origin ? `?from=${origin}` : "";
+        const resp = await fetch(`${API_BASE}/api/destinos-app/${destinoId}/sugerencias${qs}`, { headers });
+        if (!resp.ok) {
+          const errorText = await resp.text();
+          console.error("Error en respuesta:", resp.status, errorText);
+          throw new Error(`Error al cargar sugerencias: HTTP ${resp.status}`);
+        }
+        
         const json = await resp.json();
-        setSug(json);
+        console.log("Sugerencias recibidas:", json);
+        
+        // Asegurar que tenemos los arrays correctos
+        setSug({
+          transportes: json.transportes || [],
+          hoteles: json.hoteles || [],
+          actividades: json.actividades || [],
+        });
       } catch (e) {
-        console.error(e);
-        setError("No se pudieron cargar las sugerencias.");
+        console.error("Error al cargar sugerencias:", e);
+        setError("No se pudieron cargar las sugerencias: " + (e.message || "Error desconocido"));
+        // Establecer arrays vacíos para que la UI no se rompa
+        setSug({ transportes: [], hoteles: [], actividades: [] });
       } finally {
         setLoading(false);
       }
@@ -102,13 +168,70 @@ export default function PlanificarViaje5() {
 
   async function guardar() {
     try {
-      if (!plan?.id_viaje) throw new Error("Falta id del viaje");
       setSaving(true);
-      await viajesApi.patch(plan.id_viaje, pick);
-      await viajesApi.confirm(plan.id_viaje);
-      nav("/mis-viajes"); // ruta final
+      setError("");
+
+      // Bloqueo si el presupuesto queda negativo
+      const presupuestoNumber = Number(plan?.presupuesto || plan?.presupuesto_total || 0);
+      const remaining = presupuestoNumber - total;
+      if (Number.isFinite(remaining) && remaining < 0) {
+        const msg = `Tu selección supera el presupuesto por USD ${Math.abs(remaining).toFixed(2)}. Quita algún item o ajusta tu presupuesto.`;
+        setError(msg);
+        alert(msg);
+        return; // no seguimos guardando
+      }
+
+      // Asegurar que tenemos un id_viaje
+      let id_viaje = plan?.id_viaje;
+      
+      if (!id_viaje) {
+        // Crear el viaje si no existe
+        const fechaInicio = plan?.fecha_salida || plan?.fechaIda;
+        const fechaFin = plan?.fecha_vuelta || plan?.fechaVuelta;
+        const destinoNombre = plan?.destino?.nombre || plan?.destino?.name || "Destino";
+        const presupuesto = plan?.presupuesto || plan?.presupuesto_total || null;
+        const tipoViaje = plan?.travelerType || plan?.tipo_viaje || null;
+
+        if (!fechaInicio || !fechaFin) {
+          throw new Error("Faltan fechas del viaje. Por favor, completa los pasos anteriores.");
+        }
+
+        const nuevoViaje = await viajesApi.create({
+          nombre_viaje: `Viaje a ${destinoNombre}`,
+          fecha_inicio: fechaInicio,
+          fecha_fin: fechaFin,
+          destino_principal: destinoNombre,
+          presupuesto_total: presupuesto,
+          tipo_viaje: tipoViaje,
+        });
+
+        id_viaje = nuevoViaje.id_viaje || nuevoViaje.viaje?.id_viaje;
+        if (!id_viaje) {
+          throw new Error("No se pudo crear el viaje. Por favor, intenta nuevamente.");
+        }
+
+        // Actualizar el plan con el id_viaje
+        const updatedPlan = { ...plan, id_viaje };
+        localStorage.setItem("planificarViaje", JSON.stringify(updatedPlan));
+        setPlan(updatedPlan);
+      }
+
+      // Actualizar el viaje con las selecciones
+      await viajesApi.patch(id_viaje, {
+        ...pick,
+        presupuesto_total: plan?.presupuesto || plan?.presupuesto_total || null,
+      });
+
+      // Confirmar el viaje
+      await viajesApi.confirm(id_viaje);
+
+      // Limpiar localStorage y navegar
+      localStorage.removeItem("planificarViaje");
+      nav("/MisViajes");
     } catch (e) {
-      alert(e.message);
+      console.error("Error al guardar:", e);
+      setError(e.message || "Error al guardar el itinerario. Por favor, intenta nuevamente.");
+      alert(e.message || "Error al guardar el itinerario. Por favor, intenta nuevamente.");
     } finally {
       setSaving(false);
     }
@@ -141,6 +264,7 @@ export default function PlanificarViaje5() {
 
         {loading && <p className="muted">Cargando sugerencias…</p>}
         {error && <p className="pv5-error">{error}</p>}
+        {saving && <p className="muted">Guardando itinerario…</p>}
 
         {!loading && !error && sug && (
           <>

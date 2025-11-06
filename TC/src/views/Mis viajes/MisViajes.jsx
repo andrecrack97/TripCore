@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MisViajes.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3005";
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 const TABS = [
   { key: "all", label: "Todos" },

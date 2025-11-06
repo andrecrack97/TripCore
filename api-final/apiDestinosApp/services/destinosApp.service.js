@@ -54,44 +54,71 @@ async function getById(id) {
 // =================
 
 // Obtener sugerencias de transportes
-async function getTransportes({ destino_id, limit = 3 }) {
-  const { rows } = await db.query(
-    `SELECT id, kind, provider, from_city, from_country, to_city, to_country,
-            duration_min, price_usd, carbon_kg, link_url, rating
-     FROM transportes
-     WHERE destino_id = $1
-     ORDER BY price_usd ASC
-     LIMIT $2;`,
-    [destino_id, limit]
-  );
-  return rows;
+async function getTransportes({ destino_id, limit = 3, from_like }) {
+  try {
+    // Buscar por destino_id y opcionalmente filtrar por origen
+    const params = [destino_id];
+    const where = ["destino_id = $1"]; 
+    if (from_like && from_like.trim()) {
+      params.push(`%${from_like.trim()}%`);
+      where.push(`origen ILIKE $${params.length}`);
+    }
+    params.push(limit);
+    const { rows } = await db.query(
+      `SELECT id_transporte as id, tipo as kind, proveedor as provider, 
+              origen as from_city, destino as to_city,
+              EXTRACT(EPOCH FROM (fecha_llegada - fecha_salida))/60 as duration_min,
+              precio as price_usd, NULL as carbon_kg, NULL as link_url, NULL as rating
+       FROM transportes
+       WHERE ${where.join(" AND ")}
+       ORDER BY precio ASC NULLS LAST
+       LIMIT $${params.length};`,
+      params
+    );
+    return rows;
+  } catch (error) {
+    console.error("Error en getTransportes:", error);
+    return [];
+  }
 }
 
 // Obtener sugerencias de hoteles
 async function getHoteles({ destino_id, limit = 3 }) {
-  const { rows } = await db.query(
-    `SELECT id, name, stars, rating, price_night_usd, address, image_url, link_url
-     FROM hoteles
-     WHERE destino_id = $1
-     ORDER BY price_night_usd ASC
-     LIMIT $2;`,
-    [destino_id, limit]
-  );
-  return rows;
+  try {
+    // Buscar directamente por destino_id en la tabla hoteles
+    const { rows } = await db.query(
+      `SELECT id as id, name, stars, rating, price_night_usd, address, image_url, link_url
+       FROM hoteles
+       WHERE destino_id = $1
+       ORDER BY price_night_usd ASC
+       LIMIT $2;`,
+      [destino_id, limit]
+    );
+    return rows;
+  } catch (error) {
+    console.error("Error en getHoteles:", error);
+    return [];
+  }
 }
 
 // Obtener sugerencias de actividades
 async function getActividades({ destino_id, limit = 4 }) {
-  const { rows } = await db.query(
-    `SELECT id, title, category, duration_hours, price_usd,
-            meeting_point, image_url, link_url, rating
-     FROM actividades
-     WHERE destino_id = $1
-     ORDER BY rating DESC
-     LIMIT $2;`,
-    [destino_id, limit]
-  );
-  return rows;
+  try {
+    // Buscar directamente por destino_id en la tabla actividades
+    const { rows } = await db.query(
+      `SELECT id as id, title, category, duration_hours, price_usd,
+              meeting_point, image_url, link_url, rating
+       FROM actividades
+       WHERE destino_id = $1
+       ORDER BY rating DESC NULLS LAST, price_usd ASC
+       LIMIT $2;`,
+      [destino_id, limit]
+    );
+    return rows;
+  } catch (error) {
+    console.error("Error en getActividades:", error);
+    return [];
+  }
 }
 
 // ==============================
