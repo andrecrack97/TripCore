@@ -51,6 +51,10 @@ export default function MisViajes() {
   const [trips, setTrips] = useState([]);
   const [q, setQ] = useState("");
   const [active, setActive] = useState("all");
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState(null);
+  const [details, setDetails] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -79,6 +83,40 @@ export default function MisViajes() {
     })();
     return () => (mounted = false);
   }, [token]);
+
+  async function openDetails(trip) {
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    setDetailsError(null);
+    setDetails(null);
+    try {
+      const id = trip.id_viaje || trip.id;
+      const res = await fetch(`${API_BASE}/api/viajes/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData?.message || `Error ${res.status}`);
+      }
+      const data = await res.json();
+      console.log("Detalles del viaje cargados:", data);
+      setDetails(data);
+    } catch (e) {
+      console.error("Error cargando detalles:", e);
+      setDetailsError(e.message);
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
+  function closeDetails() {
+    setDetailsOpen(false);
+    setDetails(null);
+    setDetailsError(null);
+  }
 
   const result = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -146,10 +184,19 @@ export default function MisViajes() {
       ) : (
         <div className="cards-grid">
           {result.map((t) => (
-            <TripCard key={t.id_viaje || t.id} trip={t} />
+            <TripCard key={t.id_viaje || t.id} trip={t} onDetails={() => openDetails(t)} />
           ))}
         </div>
       )}
+
+      {detailsOpen && (
+        <DetailsModal
+          onClose={closeDetails}
+          loading={detailsLoading}
+          error={detailsError}
+          trip={details}
+        />)
+      }
     </div>
   );
 }
@@ -192,7 +239,7 @@ function Header({ onSearch, value, onNewTrip, active, setActive, subtitle }) {
   );
 }
 
-function TripCard({ trip }) {
+function TripCard({ trip, onDetails }) {
   const {
     titulo,
     destino,
@@ -230,7 +277,7 @@ function TripCard({ trip }) {
           <div className="trip-actions">
             <button
               className="btn btn--secondary"
-              onClick={() => navigate(`/viajes/${id}`,{ state: { trip } })}
+              onClick={onDetails}
             >
               Ver Detalles
             </button>
@@ -292,4 +339,124 @@ function normalizeTrip(t) {
 function handleNewTrip() {
   // Redirección simple (ajustá a tu router)
   window.location.href = "/planificar-viaje";
+}
+
+// Modal de detalles
+function DetailsModal({ onClose, loading, error, trip }) {
+  return (
+    <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000}}>
+      <div style={{background:"#fff", borderRadius:12, width:"min(920px, 95vw)", maxHeight:"90vh", overflow:"auto", padding:16}}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8}}>
+          <h2 style={{margin:0}}>Detalles del viaje</h2>
+          <button className="btn btn--ghost" onClick={onClose}>✕</button>
+        </div>
+
+        {loading && <div className="skeleton-grid"><div className="skeleton-card" /></div>}
+        {error && (
+          <div className="error-box"><p>No se pudo cargar el detalle</p><code>{error}</code></div>
+        )}
+        {!loading && !error && trip && (
+          <div style={{display:"grid", gridTemplateColumns:"2fr 1fr", gap:16}}>
+            <section className="td-card">
+              <div className="td-card__title">Resumen</div>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
+                <div>
+                  <div><strong>Título</strong></div>
+                  <div>{trip.titulo || trip.destino || trip.ciudad || "Viaje"}</div>
+                </div>
+                <div>
+                  <div><strong>Fechas</strong></div>
+                  <div>{fmtRange(trip.fecha_inicio, trip.fecha_fin)}</div>
+                </div>
+                <div>
+                  <div><strong>Origen</strong></div>
+                  <div>{[trip.origen_ciudad, trip.origen_pais].filter(Boolean).join(", ") || "-"}</div>
+                </div>
+                <div>
+                  <div><strong>Destino</strong></div>
+                  <div>{trip.destino || trip.ciudad || "-"}</div>
+                </div>
+                <div>
+                  <div><strong>Presupuesto</strong></div>
+                  <div>{trip.presupuesto != null ? `USD ${trip.presupuesto}` : "-"}</div>
+                </div>
+              </div>
+            </section>
+
+            <section className="td-card">
+              <div className="td-card__title">Transporte</div>
+              {Array.isArray(trip.transportes) && trip.transportes.length ? (
+                <ul className="td-list">
+                  {trip.transportes.map((t) => (
+                    <li key={t.id} className="td-item">
+                      <div>
+                        <strong>{t.tipo || t.provider || "Transporte"}</strong>
+                        <div className="td-item__sub">{t.origen || "-"} → {t.destino || "-"}</div>
+                        {t.price_usd && <div className="td-item__sub">Precio: USD {t.price_usd}</div>}
+                      </div>
+                      {(t.fecha_salida || t.fecha_llegada) && (
+                        <div className="td-item__sub">
+                          {t.fecha_salida || "-"} → {t.fecha_llegada || "-"}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : <div className="td-empty">Sin transporte seleccionado</div>}
+            </section>
+
+            <section className="td-card" style={{gridColumn:"1 / -1"}}>
+              <div className="td-card__title">Alojamiento</div>
+              {Array.isArray(trip.alojamientos) && trip.alojamientos.length ? (
+                <ul className="td-list">
+                  {trip.alojamientos.map((h) => (
+                    <li key={h.id} className="td-item">
+                      <div>
+                        <strong>{h.nombre || "Hotel"}</strong>
+                        {h.stars && <span className="td-item__sub"> {h.stars}★</span>}
+                        {h.rating && <span className="td-item__sub"> Rating: {h.rating}</span>}
+                        {h.address && <div className="td-item__sub">{h.address}</div>}
+                        {h.price_night_usd && <div className="td-item__sub">USD {h.price_night_usd}/noche</div>}
+                      </div>
+                      {(h.fecha_checkin || h.fecha_checkout) && (
+                        <div className="td-item__sub">
+                          {h.fecha_checkin || "-"} → {h.fecha_checkout || "-"}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : <div className="td-empty">Sin alojamiento seleccionado</div>}
+            </section>
+
+            <section className="td-card" style={{gridColumn:"1 / -1"}}>
+              <div className="td-card__title">Actividades</div>
+              {Array.isArray(trip.actividades) && trip.actividades.length ? (
+                <ul className="td-list">
+                  {trip.actividades.map((a) => (
+                    <li key={a.id} className="td-item">
+                      <div>
+                        <strong>{a.nombre || a.title || "Actividad"}</strong>
+                        {a.category && <div className="td-item__sub">Categoría: {a.category}</div>}
+                        {a.duration_hours && <div className="td-item__sub">Duración: {a.duration_hours} horas</div>}
+                        {a.price_usd && <div className="td-item__sub">Precio: USD {a.price_usd}</div>}
+                        {a.rating && <div className="td-item__sub">Rating: {a.rating}</div>}
+                        {a.meeting_point && <div className="td-item__sub">Punto de encuentro: {a.meeting_point}</div>}
+                        {(a.fecha || a.hora) && (
+                          <div className="td-item__sub">
+                            {a.fecha || ""}{a.hora ? ` • ${a.hora}` : ""}
+                          </div>
+                        )}
+                      </div>
+                      {a.notas && <div className="td-item__notes">{a.notas}</div>}
+                    </li>
+                  ))}
+                </ul>
+              ) : <div className="td-empty">Sin actividades seleccionadas</div>}
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

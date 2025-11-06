@@ -203,6 +203,8 @@ export default function PlanificarViaje5() {
           destino_principal: destinoNombre,
           presupuesto_total: presupuesto,
           tipo_viaje: tipoViaje,
+          origen_ciudad: plan?.origen?.nombre || plan?.origen?.name || null,
+          origen_pais: plan?.origen?.pais || plan?.origen?.country || null,
         });
 
         id_viaje = nuevoViaje.id_viaje || nuevoViaje.viaje?.id_viaje;
@@ -220,6 +222,8 @@ export default function PlanificarViaje5() {
       await viajesApi.patch(id_viaje, {
         ...pick,
         presupuesto_total: plan?.presupuesto || plan?.presupuesto_total || null,
+        origen_ciudad: plan?.origen?.nombre || plan?.origen?.name || null,
+        origen_pais: plan?.origen?.pais || plan?.origen?.country || null,
       });
 
       // Confirmar el viaje

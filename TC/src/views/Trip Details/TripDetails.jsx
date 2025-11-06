@@ -80,6 +80,9 @@ export default function TripDetails() {
           <div className="td-hero__meta">
             <span className={`td-badge ${status.cls}`}>{status.text}</span>
             <span className="td-hero__dates">{fmtRange(trip.fecha_inicio, trip.fecha_fin)}</span>
+            {(trip.origen_ciudad || trip.origen_pais) && (
+              <span className="td-hero__dates">Salida: {trip.origen_ciudad}{trip.origen_pais ? `, ${trip.origen_pais}` : ""}</span>
+            )}
           </div>
         </div>
       </div>

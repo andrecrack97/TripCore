@@ -27,20 +27,23 @@ router.get("/", auth, async (req, res) => {
     // Simplificación: devolvemos todos los viajes del usuario y simulamos tabs
     const { rows } = await pool.query(
       `SELECT 
-         id_viaje AS id,
-         id_usuario,
-         nombre_viaje AS titulo,
-         fecha_inicio,
-         fecha_fin,
-         destino_principal AS destino,
-         destino_principal AS ciudad,
+         v.id_viaje AS id,
+         v.id_usuario,
+         v.nombre_viaje AS titulo,
+         v.fecha_inicio,
+         v.fecha_fin,
+         v.destino_principal AS destino,
+         v.destino_principal AS ciudad,
          NULL::text AS pais,
-         presupuesto_total AS presupuesto,
+         v.presupuesto_total AS presupuesto,
+         COALESCE(vo.origen_ciudad, NULL) AS origen_ciudad,
+         COALESCE(vo.origen_pais, NULL)   AS origen_pais,
          4.6 AS rating
-         FROM viajes
-        WHERE id_usuario = $1
-        ORDER BY id_viaje DESC
-        LIMIT $2 OFFSET $3`,
+       FROM viajes v
+       LEFT JOIN viajes_origen vo ON vo.id_viaje = v.id_viaje
+       WHERE v.id_usuario = $1
+       ORDER BY v.id_viaje DESC
+       LIMIT $2 OFFSET $3`,
       [req.userId, pageSize, offset]
     );
     res.json({ items: rows, page, pageSize });
@@ -68,8 +71,11 @@ router.get("/:id", auth, async (req, res) => {
          v.destino_principal AS destino,
          v.destino_principal AS ciudad,
          NULL::text AS pais,
-         v.presupuesto_total AS presupuesto
+         v.presupuesto_total AS presupuesto,
+         COALESCE(vo.origen_ciudad, NULL) AS origen_ciudad,
+         COALESCE(vo.origen_pais, NULL)   AS origen_pais
        FROM viajes v
+       LEFT JOIN viajes_origen vo ON vo.id_viaje = v.id_viaje
        WHERE v.id_viaje = $1 AND v.id_usuario = $2
        LIMIT 1`,
       [id, req.userId]
@@ -78,34 +84,73 @@ router.get("/:id", auth, async (req, res) => {
 
     const trip = rTrip.rows[0];
 
-    // Itinerario simple si existen tablas relacionadas
+    // Obtener selecciones guardadas
+    let transporte_id = null;
+    let hotel_id = null;
+    let actividades_ids = [];
+    try {
+      const rSel = await pool.query(
+        `SELECT transporte_id, hotel_id, actividades_ids FROM viajes_selecciones WHERE id_viaje = $1`,
+        [id]
+      );
+      if (rSel.rowCount > 0) {
+        transporte_id = rSel.rows[0].transporte_id;
+        hotel_id = rSel.rows[0].hotel_id;
+        actividades_ids = Array.isArray(rSel.rows[0].actividades_ids) ? rSel.rows[0].actividades_ids : [];
+      }
+    } catch (_) {}
+
+    // Buscar datos desde las tablas originales usando los IDs guardados
     let alojamientos = [];
     let transportes = [];
     let actividades = [];
-    try {
-      const rA = await pool.query(
-        `SELECT id_reserva as id, nombre_hotel as nombre, ciudad, fecha_checkin, fecha_checkout, confirmacion
-           FROM reservas_alojamiento WHERE id_viaje = $1 ORDER BY fecha_checkin ASC`,
-        [id]
-      );
-      alojamientos = rA.rows;
-    } catch (_) {}
-    try {
-      const rT = await pool.query(
-        `SELECT id_transporte_viaje as id, tipo, origen, destino, fecha_salida, fecha_llegada, codigo_reserva
-           FROM viajes_transportes WHERE id_viaje = $1 ORDER BY fecha_salida ASC`,
-        [id]
-      );
-      transportes = rT.rows;
-    } catch (_) {}
-    try {
-      const rAct = await pool.query(
-        `SELECT id_viaje_actividad as id, nombre, ciudad, fecha, hora, notas
-           FROM viajes_actividades WHERE id_viaje = $1 ORDER BY fecha ASC, hora ASC`,
-        [id]
-      );
-      actividades = rAct.rows;
-    } catch (_) {}
+    
+    if (hotel_id) {
+      try {
+        const rH = await pool.query(
+          `SELECT id as id, name as nombre, NULL as ciudad, NULL as fecha_checkin, NULL as fecha_checkout, NULL as confirmacion,
+                  stars, rating, price_night_usd, address, image_url
+           FROM hoteles WHERE id = $1`,
+          [hotel_id]
+        );
+        if (rH.rowCount > 0) {
+          alojamientos = [rH.rows[0]];
+        }
+      } catch (e) {
+        console.error("Error obteniendo hotel:", e);
+      }
+    }
+
+    if (transporte_id) {
+      try {
+        const rT = await pool.query(
+          `SELECT id_transporte as id, tipo, origen, destino, 
+                  fecha_salida, fecha_llegada, NULL as codigo_reserva,
+                  proveedor as provider, precio as price_usd
+           FROM transportes WHERE id_transporte = $1`,
+          [transporte_id]
+        );
+        if (rT.rowCount > 0) {
+          transportes = [rT.rows[0]];
+        }
+      } catch (e) {
+        console.error("Error obteniendo transporte:", e);
+      }
+    }
+
+    if (actividades_ids && actividades_ids.length > 0) {
+      try {
+        const rAct = await pool.query(
+          `SELECT id as id, title as nombre, NULL as ciudad, NULL as fecha, NULL as hora, NULL as notas,
+                  category, duration_hours, price_usd, meeting_point, image_url, rating
+           FROM actividades WHERE id = ANY($1::int[])`,
+          [actividades_ids]
+        );
+        actividades = rAct.rows;
+      } catch (e) {
+        console.error("Error obteniendo actividades:", e);
+      }
+    }
 
     return res.json({ ...trip, alojamientos, transportes, actividades });
   } catch (err) {
@@ -202,6 +247,7 @@ router.get("/sugerencias", auth, async (req, res) => {
 // POST /api/viajes - Crear un nuevo viaje
 router.post("/", auth, async (req, res) => {
   const { nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje } = req.body;
+  const { origen_ciudad, origen_pais } = req.body || {};
   
   try {
     const insert = await pool.query(
@@ -211,9 +257,30 @@ router.post("/", auth, async (req, res) => {
       [req.userId, nombre_viaje || "Mi viaje", fecha_inicio, fecha_fin, destino_principal || null, presupuesto_total || null, tipo_viaje || null]
     );
 
+    const newId = insert.rows[0].id_viaje;
+
+    // Persistimos origen en tabla auxiliar (si no existe se crea)
+    if (origen_ciudad || origen_pais) {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS viajes_origen (
+           id_viaje INTEGER PRIMARY KEY,
+           origen_ciudad TEXT,
+           origen_pais TEXT
+         );`
+      );
+      await pool.query(
+        `INSERT INTO viajes_origen (id_viaje, origen_ciudad, origen_pais)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (id_viaje) DO UPDATE SET
+           origen_ciudad = COALESCE(EXCLUDED.origen_ciudad, viajes_origen.origen_ciudad),
+           origen_pais   = COALESCE(EXCLUDED.origen_pais,   viajes_origen.origen_pais);`,
+        [newId, origen_ciudad || null, origen_pais || null]
+      );
+    }
+
     res.status(201).json({
       success: true,
-      id_viaje: insert.rows[0].id_viaje,
+      id_viaje: newId,
       viaje: insert.rows[0],
     });
   } catch (error) {
@@ -278,6 +345,8 @@ router.patch("/:id", auth, async (req, res) => {
       hotel_id,
       actividades_ids,
       destino_id,
+      origen_ciudad,
+      origen_pais,
     } = req.body;
 
     // Construir la query de actualización dinámicamente
@@ -319,10 +388,45 @@ router.patch("/:id", auth, async (req, res) => {
       );
     }
 
-    // Manejar transporte_id, hotel_id, actividades_ids si vienen
-    // Nota: Estos campos no existen directamente en la tabla viajes,
-    // pero podrían ser referencias a otras tablas. Por ahora los ignoramos
-    // o los guardamos en una estructura JSON si la BD lo soporta.
+    // Guardar origen en tabla auxiliar si viene
+    if (origen_ciudad !== undefined || origen_pais !== undefined) {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS viajes_origen (
+           id_viaje INTEGER PRIMARY KEY,
+           origen_ciudad TEXT,
+           origen_pais TEXT
+         );`
+      );
+      await pool.query(
+        `INSERT INTO viajes_origen (id_viaje, origen_ciudad, origen_pais)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (id_viaje) DO UPDATE SET
+           origen_ciudad = COALESCE(EXCLUDED.origen_ciudad, viajes_origen.origen_ciudad),
+           origen_pais   = COALESCE(EXCLUDED.origen_pais,   viajes_origen.origen_pais);`,
+        [id, origen_ciudad || null, origen_pais || null]
+      );
+    }
+
+    // Guardar selecciones (transporte_id, hotel_id, actividades_ids) en tabla auxiliar
+    if (transporte_id !== undefined || hotel_id !== undefined || actividades_ids !== undefined) {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS viajes_selecciones (
+           id_viaje INTEGER PRIMARY KEY,
+           transporte_id INTEGER,
+           hotel_id INTEGER,
+           actividades_ids INTEGER[]
+         );`
+      );
+      await pool.query(
+        `INSERT INTO viajes_selecciones (id_viaje, transporte_id, hotel_id, actividades_ids)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (id_viaje) DO UPDATE SET
+           transporte_id = COALESCE(EXCLUDED.transporte_id, viajes_selecciones.transporte_id),
+           hotel_id = COALESCE(EXCLUDED.hotel_id, viajes_selecciones.hotel_id),
+           actividades_ids = COALESCE(EXCLUDED.actividades_ids, viajes_selecciones.actividades_ids);`,
+        [id, transporte_id || null, hotel_id || null, Array.isArray(actividades_ids) ? actividades_ids : null]
+      );
+    }
 
     // Si viene destino_id, actualizamos destino_principal (asumiendo que viene el nombre del destino)
     if (destino_id !== undefined) {
