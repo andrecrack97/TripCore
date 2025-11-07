@@ -32,15 +32,16 @@ router.get("/", auth, async (req, res) => {
          v.nombre_viaje AS titulo,
          v.fecha_inicio,
          v.fecha_fin,
-         v.destino_principal AS destino,
-         v.destino_principal AS ciudad,
-         NULL::text AS pais,
+         COALESCE(d_destino.nombre, v.destino_principal) AS destino,
+         COALESCE(d_destino.nombre, v.destino_principal) AS ciudad,
+         COALESCE(d_destino.pais, NULL) AS pais,
          v.presupuesto_total AS presupuesto,
-         COALESCE(vo.origen_ciudad, NULL) AS origen_ciudad,
-         COALESCE(vo.origen_pais, NULL)   AS origen_pais,
+         COALESCE(d_origen.nombre, NULL) AS origen_ciudad,
+         COALESCE(d_origen.pais, NULL)   AS origen_pais,
          4.6 AS rating
        FROM viajes v
-       LEFT JOIN viajes_origen vo ON vo.id_viaje = v.id_viaje
+       LEFT JOIN destinos d_origen ON d_origen.id = v.origen_id
+       LEFT JOIN destinos d_destino ON d_destino.id = v.destino_id
        WHERE v.id_usuario = $1
        ORDER BY v.id_viaje DESC
        LIMIT $2 OFFSET $3`,
@@ -60,7 +61,7 @@ router.get("/:id", auth, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "ID inválido" });
 
-    // Viaje base
+    // Viaje base con JOINs para origen y destino
     const rTrip = await pool.query(
       `SELECT 
          v.id_viaje AS id,
@@ -68,14 +69,18 @@ router.get("/:id", auth, async (req, res) => {
          v.nombre_viaje AS titulo,
          v.fecha_inicio,
          v.fecha_fin,
-         v.destino_principal AS destino,
-         v.destino_principal AS ciudad,
-         NULL::text AS pais,
+         COALESCE(d_destino.nombre, v.destino_principal) AS destino,
+         COALESCE(d_destino.nombre, v.destino_principal) AS ciudad,
+         COALESCE(d_destino.pais, NULL) AS pais,
          v.presupuesto_total AS presupuesto,
-         COALESCE(vo.origen_ciudad, NULL) AS origen_ciudad,
-         COALESCE(vo.origen_pais, NULL)   AS origen_pais
+         COALESCE(d_origen.nombre, NULL) AS origen_ciudad,
+         COALESCE(d_origen.pais, NULL) AS origen_pais,
+         v.transporte_id,
+         v.hotel_id,
+         v.actividades_ids
        FROM viajes v
-       LEFT JOIN viajes_origen vo ON vo.id_viaje = v.id_viaje
+       LEFT JOIN destinos d_origen ON d_origen.id = v.origen_id
+       LEFT JOIN destinos d_destino ON d_destino.id = v.destino_id
        WHERE v.id_viaje = $1 AND v.id_usuario = $2
        LIMIT 1`,
       [id, req.userId]
@@ -84,21 +89,15 @@ router.get("/:id", auth, async (req, res) => {
 
     const trip = rTrip.rows[0];
 
-    // Obtener selecciones guardadas
-    let transporte_id = null;
-    let hotel_id = null;
-    let actividades_ids = [];
-    try {
-      const rSel = await pool.query(
-        `SELECT transporte_id, hotel_id, actividades_ids FROM viajes_selecciones WHERE id_viaje = $1`,
-        [id]
-      );
-      if (rSel.rowCount > 0) {
-        transporte_id = rSel.rows[0].transporte_id;
-        hotel_id = rSel.rows[0].hotel_id;
-        actividades_ids = Array.isArray(rSel.rows[0].actividades_ids) ? rSel.rows[0].actividades_ids : [];
-      }
-    } catch (_) {}
+    // Obtener selecciones guardadas directamente de viajes
+    const transporte_id = trip.transporte_id;
+    const hotel_id = trip.hotel_id;
+    const actividades_ids = Array.isArray(trip.actividades_ids) ? trip.actividades_ids : [];
+
+    // Remover campos internos antes de enviar la respuesta
+    delete trip.transporte_id;
+    delete trip.hotel_id;
+    delete trip.actividades_ids;
 
     // Buscar datos desde las tablas originales usando los IDs guardados
     let alojamientos = [];
@@ -108,8 +107,8 @@ router.get("/:id", auth, async (req, res) => {
     if (hotel_id) {
       try {
         const rH = await pool.query(
-          `SELECT id as id, name as nombre, NULL as ciudad, NULL as fecha_checkin, NULL as fecha_checkout, NULL as confirmacion,
-                  stars, rating, price_night_usd, address, image_url
+          `SELECT id, name as nombre, NULL as ciudad, NULL as fecha_checkin, NULL as fecha_checkout, NULL as confirmacion,
+                  stars, rating, price_night_usd, address, image_url, link_url
            FROM hoteles WHERE id = $1`,
           [hotel_id]
         );
@@ -124,10 +123,10 @@ router.get("/:id", auth, async (req, res) => {
     if (transporte_id) {
       try {
         const rT = await pool.query(
-          `SELECT id_transporte as id, tipo, origen, destino, 
-                  fecha_salida, fecha_llegada, NULL as codigo_reserva,
-                  proveedor as provider, precio as price_usd
-           FROM transportes WHERE id_transporte = $1`,
+          `SELECT id, kind as tipo, from_city as origen, to_city as destino, 
+                  NULL as fecha_salida, NULL as fecha_llegada, NULL as codigo_reserva,
+                  provider, price_usd, duration_min, carbon_kg, link_url, rating
+           FROM transportes WHERE id = $1`,
           [transporte_id]
         );
         if (rT.rowCount > 0) {
@@ -141,9 +140,9 @@ router.get("/:id", auth, async (req, res) => {
     if (actividades_ids && actividades_ids.length > 0) {
       try {
         const rAct = await pool.query(
-          `SELECT id as id, title as nombre, NULL as ciudad, NULL as fecha, NULL as hora, NULL as notas,
-                  category, duration_hours, price_usd, meeting_point, image_url, rating
-           FROM actividades WHERE id = ANY($1::int[])`,
+          `SELECT id, title as nombre, NULL as ciudad, NULL as fecha, NULL as hora, NULL as notas,
+                  category, duration_hours, price_usd, meeting_point, image_url, rating, link_url
+           FROM actividades WHERE id = ANY($1::uuid[])`,
           [actividades_ids]
         );
         actividades = rAct.rows;
@@ -176,21 +175,22 @@ router.get("/sugerencias", auth, async (req, res) => {
   try {
     const suggestions = { transportes: [], alojamientos: [], actividades: [] };
 
-    // Transportes: por origen/destino y fechas si existen columnas
+    // Transportes: por origen/destino usando nombres correctos de columnas
     try {
       const rT = await pool.query(
-        `SELECT id_transporte as id, tipo, origen, destino, precio, moneda, fecha_salida, fecha_llegada, proveedor
+        `SELECT id, kind as tipo, from_city as origen, to_city as destino, 
+                price_usd as precio, provider as proveedor, duration_min, carbon_kg, link_url, rating
            FROM transportes
-          WHERE ($1 = '' OR LOWER(destino) LIKE LOWER('%' || $1 || '%'))
-            AND ($2 = '' OR LOWER(origen) LIKE LOWER('%' || $2 || '%'))
-            AND ($3 = '' OR fecha_salida >= $3::date)
-            AND ($4 = '' OR fecha_llegada <= $4::date)
-          ORDER BY precio ASC
+          WHERE ($1 = '' OR LOWER(to_city) LIKE LOWER('%' || $1 || '%') OR LOWER(to_country) LIKE LOWER('%' || $1 || '%'))
+            AND ($2 = '' OR LOWER(from_city) LIKE LOWER('%' || $2 || '%') OR LOWER(from_country) LIKE LOWER('%' || $2 || '%'))
+          ORDER BY price_usd ASC NULLS LAST
           LIMIT 10`,
-        [destino, origen, fecha_salida, fecha_vuelta]
+        [destino, origen]
       );
       suggestions.transportes = rT.rows;
-    } catch (_) {}
+    } catch (e) {
+      console.error("Error obteniendo sugerencias de transportes:", e);
+    }
 
     // Heurística de presupuesto por noche para alojamiento
     const nights = (() => {
@@ -204,21 +204,25 @@ router.get("/sugerencias", auth, async (req, res) => {
     const totalBudget = Number(budget) || 0;
     const perNight = nights > 0 ? Math.floor((totalBudget * 0.5) / nights) : null; // ~50% a stay
 
-    // Alojamiento: por destino (ciudad), filtro precio_noche si hay presupuesto
+    // Alojamiento: por destino usando nombres correctos de columnas
     try {
       const rH = await pool.query(
-        `SELECT id_alojamiento as id, nombre, ciudad, zona, calificacion, precio_noche, moneda, foto_url
-           FROM alojamientos
-          WHERE ($1 = '' OR LOWER(ciudad) LIKE LOWER('%' || $1 || '%'))
-            AND ($2::int IS NULL OR precio_noche <= $2)
-          ORDER BY precio_noche ASC NULLS LAST
+        `SELECT h.id, h.name as nombre, d.nombre as ciudad, h.stars as calificacion, 
+                h.price_night_usd as precio_noche, h.rating, h.address, h.image_url, h.link_url
+           FROM hoteles h
+           LEFT JOIN destinos d ON d.id = h.destino_id
+          WHERE ($1 = '' OR LOWER(d.nombre) LIKE LOWER('%' || $1 || '%') OR LOWER(d.pais) LIKE LOWER('%' || $1 || '%'))
+            AND ($2::int IS NULL OR h.price_night_usd <= $2)
+          ORDER BY h.price_night_usd ASC NULLS LAST
           LIMIT 12`,
         [destino, perNight]
       );
       suggestions.alojamientos = rH.rows;
-    } catch (_) {}
+    } catch (e) {
+      console.error("Error obteniendo sugerencias de alojamientos:", e);
+    }
 
-    // Actividades: por ciudad y preferencia
+    // Actividades: por ciudad y preferencia usando nombres correctos de columnas
     const categoriaPreferida =
       travelerType === 'cultural' ? 'cultura'
       : travelerType === 'aventurero' ? 'aventura'
@@ -226,16 +230,20 @@ router.get("/sugerencias", auth, async (req, res) => {
       : null;
     try {
       const rA = await pool.query(
-        `SELECT id_actividad as id, nombre, ciudad, categoria, precio, moneda, duracion, rating, foto_url
-           FROM actividades
-          WHERE ($1 = '' OR LOWER(ciudad) LIKE LOWER('%' || $1 || '%'))
-            AND ($2 IS NULL OR LOWER(categoria) = LOWER($2))
-          ORDER BY (CASE WHEN precio = 0 THEN -1 ELSE precio END) ASC, rating DESC NULLS LAST
+        `SELECT a.id, a.title as nombre, d.nombre as ciudad, a.category as categoria, 
+                a.price_usd as precio, a.duration_hours as duracion, a.rating, a.image_url, a.link_url, a.meeting_point
+           FROM actividades a
+           LEFT JOIN destinos d ON d.id = a.destino_id
+          WHERE ($1 = '' OR LOWER(d.nombre) LIKE LOWER('%' || $1 || '%') OR LOWER(d.pais) LIKE LOWER('%' || $1 || '%'))
+            AND ($2 IS NULL OR LOWER(a.category::text) = LOWER($2))
+          ORDER BY (CASE WHEN a.price_usd = 0 THEN -1 ELSE a.price_usd END) ASC, a.rating DESC NULLS LAST
           LIMIT 16`,
         [destino, categoriaPreferida]
       );
       suggestions.actividades = rA.rows;
-    } catch (_) {}
+    } catch (e) {
+      console.error("Error obteniendo sugerencias de actividades:", e);
+    }
 
     return res.json({ ...suggestions, currency, budget: totalBudget, nights });
   } catch (err) {
@@ -246,36 +254,121 @@ router.get("/sugerencias", auth, async (req, res) => {
 
 // POST /api/viajes - Crear un nuevo viaje
 router.post("/", auth, async (req, res) => {
-  const { nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje } = req.body;
-  const { origen_ciudad, origen_pais } = req.body || {};
+  const {
+    nombre_viaje,
+    fecha_inicio,
+    fecha_fin,
+    destino_principal,
+    destino_id,
+    presupuesto_total,
+    tipo_viaje,
+    perfil_viajero,
+    viajeros_adultos,
+    viajeros_menores,
+    moneda,
+    origen_id,
+    origen_ciudad,
+    origen_pais,
+  } = req.body;
   
   try {
+    // Construir la query de inserción dinámicamente
+    const fields = ['id_usuario', 'nombre_viaje', 'fecha_inicio', 'fecha_fin'];
+    const values = [req.userId, nombre_viaje || "Mi viaje", fecha_inicio, fecha_fin];
+    let paramIndex = values.length + 1;
+
+    if (destino_principal !== undefined) {
+      fields.push('destino_principal');
+      values.push(destino_principal);
+      paramIndex++;
+    }
+    if (destino_id !== undefined && destino_id !== null) {
+      fields.push('destino_id');
+      values.push(destino_id);
+      paramIndex++;
+    }
+    if (presupuesto_total !== undefined) {
+      fields.push('presupuesto_total');
+      values.push(presupuesto_total);
+      paramIndex++;
+    }
+    if (tipo_viaje !== undefined) {
+      fields.push('tipo_viaje');
+      values.push(tipo_viaje);
+      paramIndex++;
+    }
+    if (perfil_viajero !== undefined) {
+      fields.push('perfil_viajero');
+      values.push(perfil_viajero);
+      paramIndex++;
+    }
+    if (viajeros_adultos !== undefined) {
+      fields.push('viajeros_adultos');
+      values.push(viajeros_adultos);
+      paramIndex++;
+    }
+    if (viajeros_menores !== undefined) {
+      fields.push('viajeros_menores');
+      values.push(viajeros_menores);
+      paramIndex++;
+    }
+    if (moneda !== undefined) {
+      fields.push('moneda');
+      values.push(moneda);
+      paramIndex++;
+    }
+
+    const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
     const insert = await pool.query(
-      `INSERT INTO viajes (id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id_viaje, id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje`,
-      [req.userId, nombre_viaje || "Mi viaje", fecha_inicio, fecha_fin, destino_principal || null, presupuesto_total || null, tipo_viaje || null]
+      `INSERT INTO viajes (${fields.join(', ')})
+       VALUES (${placeholders})
+       RETURNING id_viaje`,
+      values
     );
 
     const newId = insert.rows[0].id_viaje;
+    
+    // Buscar destino principal y actualizar destino_id si no se proporcionó directamente
+    if (!destino_id && destino_principal) {
+      try {
+        const rDestino = await pool.query(
+          `SELECT id FROM destinos WHERE LOWER(nombre) = LOWER($1) LIMIT 1`,
+          [destino_principal]
+        );
+        
+        if (rDestino.rowCount > 0) {
+          await pool.query(
+            `UPDATE viajes SET destino_id = $1 WHERE id_viaje = $2`,
+            [rDestino.rows[0].id, newId]
+          );
+        }
+      } catch (err) {
+        console.error("Error al guardar destino:", err);
+      }
+    }
 
-    // Persistimos origen en tabla auxiliar (si no existe se crea)
-    if (origen_ciudad || origen_pais) {
+    // Actualizar origen_id si viene directamente o buscar por nombre/pais
+    if (origen_id) {
       await pool.query(
-        `CREATE TABLE IF NOT EXISTS viajes_origen (
-           id_viaje INTEGER PRIMARY KEY,
-           origen_ciudad TEXT,
-           origen_pais TEXT
-         );`
+        `UPDATE viajes SET origen_id = $1 WHERE id_viaje = $2`,
+        [origen_id, newId]
       );
-      await pool.query(
-        `INSERT INTO viajes_origen (id_viaje, origen_ciudad, origen_pais)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (id_viaje) DO UPDATE SET
-           origen_ciudad = COALESCE(EXCLUDED.origen_ciudad, viajes_origen.origen_ciudad),
-           origen_pais   = COALESCE(EXCLUDED.origen_pais,   viajes_origen.origen_pais);`,
-        [newId, origen_ciudad || null, origen_pais || null]
-      );
+    } else if (origen_ciudad || origen_pais) {
+      try {
+        const rDestino = await pool.query(
+          `SELECT id FROM destinos WHERE LOWER(nombre) = LOWER($1) AND LOWER(pais) = LOWER($2) LIMIT 1`,
+          [origen_ciudad || '', origen_pais || '']
+        );
+        
+        if (rDestino.rowCount > 0) {
+          await pool.query(
+            `UPDATE viajes SET origen_id = $1 WHERE id_viaje = $2`,
+            [rDestino.rows[0].id, newId]
+          );
+        }
+      } catch (err) {
+        console.error("Error al guardar origen:", err);
+      }
     }
 
     res.status(201).json({
@@ -341,10 +434,15 @@ router.patch("/:id", auth, async (req, res) => {
       destino_principal,
       presupuesto_total,
       tipo_viaje,
+      perfil_viajero,
+      viajeros_adultos,
+      viajeros_menores,
+      moneda,
       transporte_id,
       hotel_id,
       actividades_ids,
       destino_id,
+      origen_id,
       origen_ciudad,
       origen_pais,
     } = req.body;
@@ -369,6 +467,21 @@ router.patch("/:id", auth, async (req, res) => {
     if (destino_principal !== undefined) {
       updates.push(`destino_principal = $${paramIndex++}`);
       values.push(destino_principal);
+      
+      // Si se actualiza destino_principal, buscar destino_id también
+      try {
+        const rDestino = await pool.query(
+          `SELECT id FROM destinos WHERE LOWER(nombre) = LOWER($1) LIMIT 1`,
+          [destino_principal]
+        );
+        if (rDestino.rowCount > 0) {
+          updates.push(`destino_id = $${paramIndex++}`);
+          values.push(rDestino.rows[0].id);
+        }
+      } catch (err) {
+        console.error("Error al buscar destino:", err);
+        // Continuar sin fallar
+      }
     }
     if (presupuesto_total !== undefined) {
       updates.push(`presupuesto_total = $${paramIndex++}`);
@@ -378,61 +491,93 @@ router.patch("/:id", auth, async (req, res) => {
       updates.push(`tipo_viaje = $${paramIndex++}`);
       values.push(tipo_viaje);
     }
+    if (perfil_viajero !== undefined) {
+      updates.push(`perfil_viajero = $${paramIndex++}`);
+      values.push(perfil_viajero);
+    }
+    if (viajeros_adultos !== undefined) {
+      updates.push(`viajeros_adultos = $${paramIndex++}`);
+      values.push(viajeros_adultos);
+    }
+    if (viajeros_menores !== undefined) {
+      updates.push(`viajeros_menores = $${paramIndex++}`);
+      values.push(viajeros_menores);
+    }
+    if (moneda !== undefined) {
+      updates.push(`moneda = $${paramIndex++}`);
+      values.push(moneda);
+    }
+
+    // Agregar origen_id si viene directamente
+    if (origen_id !== undefined && origen_id !== null) {
+      updates.push(`origen_id = $${paramIndex++}`);
+      values.push(origen_id);
+    }
+
+    // Buscar destino de origen y agregar origen_id a los updates si viene por nombre/pais
+    if (!origen_id && (origen_ciudad !== undefined || origen_pais !== undefined)) {
+      try {
+        // Buscar destino existente por nombre y país
+        const rDestino = await pool.query(
+          `SELECT id FROM destinos WHERE LOWER(nombre) = LOWER($1) AND LOWER(pais) = LOWER($2) LIMIT 1`,
+          [origen_ciudad || '', origen_pais || '']
+        );
+        
+        let origenId = null;
+        if (rDestino.rowCount > 0) {
+          origenId = rDestino.rows[0].id;
+        }
+        
+        // Agregar origen_id a los updates si encontramos el destino
+        if (origenId) {
+          updates.push(`origen_id = $${paramIndex++}`);
+          values.push(origenId);
+        }
+      } catch (err) {
+        console.error("Error al guardar origen:", err);
+        // Continuar sin fallar si hay error al guardar el origen
+      }
+    }
+
+    // Si viene destino_id, actualizamos destino_id en viajes
+    if (destino_id !== undefined) {
+      updates.push(`destino_id = $${paramIndex++}`);
+      values.push(destino_id || null);
+    }
+
+    // Guardar selecciones (transporte_id, hotel_id, actividades_ids) directamente en viajes
+    if (transporte_id !== undefined) {
+      updates.push(`transporte_id = $${paramIndex++}`);
+      values.push(transporte_id || null);
+    }
+    if (hotel_id !== undefined) {
+      updates.push(`hotel_id = $${paramIndex++}`);
+      values.push(hotel_id || null);
+    }
+    if (actividades_ids !== undefined) {
+      // Manejar array de actividades_ids correctamente
+      let actividadesValue = null;
+      if (Array.isArray(actividades_ids) && actividades_ids.length > 0) {
+        // Filtrar valores nulos/undefined y asegurar que sean UUIDs válidos
+        actividadesValue = actividades_ids.filter(id => id != null && id !== '');
+      } else if (Array.isArray(actividades_ids) && actividades_ids.length === 0) {
+        // Array vacío se guarda como array vacío en PostgreSQL
+        actividadesValue = [];
+      }
+      updates.push(`actividades_ids = $${paramIndex++}`);
+      values.push(actividadesValue);
+    }
 
     // Actualizar el viaje si hay campos para actualizar
     if (updates.length > 0) {
+      const finalParamIndex = paramIndex;
       values.push(id, req.userId);
       await pool.query(
-        `UPDATE viajes SET ${updates.join(", ")} WHERE id_viaje = $${paramIndex++} AND id_usuario = $${paramIndex++}`,
+        `UPDATE viajes SET ${updates.join(", ")} WHERE id_viaje = $${finalParamIndex} AND id_usuario = $${finalParamIndex + 1}`,
         values
       );
     }
 
-    // Guardar origen en tabla auxiliar si viene
-    if (origen_ciudad !== undefined || origen_pais !== undefined) {
-      await pool.query(
-        `CREATE TABLE IF NOT EXISTS viajes_origen (
-           id_viaje INTEGER PRIMARY KEY,
-           origen_ciudad TEXT,
-           origen_pais TEXT
-         );`
-      );
-      await pool.query(
-        `INSERT INTO viajes_origen (id_viaje, origen_ciudad, origen_pais)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (id_viaje) DO UPDATE SET
-           origen_ciudad = COALESCE(EXCLUDED.origen_ciudad, viajes_origen.origen_ciudad),
-           origen_pais   = COALESCE(EXCLUDED.origen_pais,   viajes_origen.origen_pais);`,
-        [id, origen_ciudad || null, origen_pais || null]
-      );
-    }
-
-    // Guardar selecciones (transporte_id, hotel_id, actividades_ids) en tabla auxiliar
-    if (transporte_id !== undefined || hotel_id !== undefined || actividades_ids !== undefined) {
-      await pool.query(
-        `CREATE TABLE IF NOT EXISTS viajes_selecciones (
-           id_viaje INTEGER PRIMARY KEY,
-           transporte_id INTEGER,
-           hotel_id INTEGER,
-           actividades_ids INTEGER[]
-         );`
-      );
-      await pool.query(
-        `INSERT INTO viajes_selecciones (id_viaje, transporte_id, hotel_id, actividades_ids)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (id_viaje) DO UPDATE SET
-           transporte_id = COALESCE(EXCLUDED.transporte_id, viajes_selecciones.transporte_id),
-           hotel_id = COALESCE(EXCLUDED.hotel_id, viajes_selecciones.hotel_id),
-           actividades_ids = COALESCE(EXCLUDED.actividades_ids, viajes_selecciones.actividades_ids);`,
-        [id, transporte_id || null, hotel_id || null, Array.isArray(actividades_ids) ? actividades_ids : null]
-      );
-    }
-
-    // Si viene destino_id, actualizamos destino_principal (asumiendo que viene el nombre del destino)
-    if (destino_id !== undefined) {
-      // Aquí podrías hacer una consulta para obtener el nombre del destino desde la tabla destinos
-      // Por ahora, si destino_id viene, lo ignoramos o lo usamos para actualizar destino_principal
-    }
 
     const updated = await pool.query(
       `SELECT id_viaje AS id, id_usuario, nombre_viaje, fecha_inicio, fecha_fin, destino_principal, presupuesto_total, tipo_viaje
