@@ -1,52 +1,20 @@
-function resolveApiBase() {
-  const win = typeof window !== "undefined" ? window : undefined;
-  const raw = (
-    import.meta.env.VITE_API_BASE ||
-    import.meta.env.VITE_API_URL ||
-    ""
-  ).trim();
+const win = typeof window !== "undefined" ? window : undefined;
+const defaultOrigin = win?.location?.origin || "http://localhost:5173";
+const fallbackApi = defaultOrigin.replace(/:\d+$/, (match) => `:${match.slice(1) === "5173" ? "3000" : match.slice(1)}`);
 
-  if (!raw) {
-    if (win) {
-      const hostname = win.location.hostname || "localhost";
-      const protocol = win.location.protocol || "http:";
-      return `${protocol}//${hostname}:3000`;
-    }
-    return "http://localhost:3000";
-  }
+const rawBase = (import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || "").trim();
+let API_BASE = fallbackApi;
 
-  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/$/, "");
-  if (raw.startsWith("//")) {
-    const protocol = win?.location.protocol || "http:";
-    return `${protocol}${raw}`.replace(/\/$/, "");
+if (rawBase) {
+  try {
+    const url = new URL(rawBase, defaultOrigin);
+    API_BASE = url.origin.replace(/\/$/, "");
+  } catch (err) {
+    console.warn("[ofertasApi] VITE_API_* inválido, usando fallback", rawBase, err);
   }
-  if (raw.startsWith(":")) {
-    const hostname = win?.location.hostname || "localhost";
-    const protocol = win?.location.protocol || "http:";
-    return `${protocol}//${hostname}${raw}`.replace(/\/$/, "");
-  }
-  if (raw.startsWith("/")) {
-    const origin = win?.location.origin || "http://localhost:3000";
-    return `${origin}${raw}`.replace(/\/$/, "");
-  }
-  const protocol = win?.location.protocol || "http:";
-  const hostname = win?.location.hostname || "localhost";
-  return `${protocol}//${hostname}/${raw}`.replace(/\/$/, "");
 }
 
-let API_BASE = resolveApiBase();
-
-try {
-  const testUrl = new URL("/api/ofertas", API_BASE);
-  if (testUrl.hostname === "") {
-    throw new Error("invalid host");
-  }
-} catch (_) {
-  const win = typeof window !== "undefined" ? window : undefined;
-  const protocol = win?.location.protocol || "http:";
-  const hostname = win?.location.hostname || "localhost";
-  API_BASE = `${protocol}//${hostname}:3000`;
-}
+console.debug("[ofertasApi] API_BASE:", API_BASE);
 
 async function httpGet(path, params = {}) {
   const url = new URL(path, API_BASE);
@@ -63,11 +31,12 @@ async function httpGet(path, params = {}) {
 
 export const ofertasApi = {
   getAll: (params = {}) => {
-    const { tipo, destino, fechas } = params;
+    const { tipo, destino, fechas, limit } = params;
     const queryParams = {};
     if (tipo) queryParams.tipo = tipo;
     if (destino) queryParams.destino = destino;
     if (fechas) queryParams.fechas = fechas;
+    if (limit) queryParams.limit = limit;
     return httpGet("/api/ofertas", queryParams);
   },
 };

@@ -228,9 +228,9 @@ async function getDestinoDetalle(destino_id) {
   if (!destino) return null;
 
   const [hoteles, transportes, actividades, ofertas] = await Promise.all([
-    getHoteles({ destino_id, limit: 12 }),
-    getTransportes({ destino_id, limit: 10 }),
-    getActividades({ destino_id, limit: 12 }),
+    getHoteles({ destino_id, limit: 12 }).catch(() => []),
+    getTransportes({ destino_id, limit: 10 }).catch(() => []),
+    getActividades({ destino_id, limit: 12 }).catch(() => []),
     getOfertas({ destino_id, limit: 8 }).catch(() => []),
   ]);
 

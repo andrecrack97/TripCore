@@ -85,7 +85,7 @@ function Ofertas() {
 
       console.log("📤 Parámetros de búsqueda:", params);
 
-      const res = await ofertasApi.getAll(params);
+      const res = await ofertasApi.getAll({ ...params, limit: 40 });
       console.log("📥 Respuesta de API:", res);
 
       // La API puede devolver:

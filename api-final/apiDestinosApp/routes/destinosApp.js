@@ -44,6 +44,20 @@ router.get("/autocomplete", async (req, res) => {
 // =================================
 // Devuelve las sugerencias de transporte, alojamiento y actividades
 // GET /api/destinos-app/:id/sugerencias
+router.get("/:id/detalle", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const detail = await svc.getDestinoDetalle(id);
+    if (!detail) {
+      return res.status(404).json({ message: "Destino no encontrado" });
+    }
+    res.json(detail);
+  } catch (error) {
+    console.error("❌ Error en /:id/detalle:", error);
+    res.status(500).json({ message: "Error al obtener el detalle del destino" });
+  }
+});
+
 router.get("/:id/sugerencias", async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,20 +113,6 @@ router.get("/:id/sugerencias", async (req, res) => {
       hoteles: [], 
       actividades: [] 
     });
-  }
-});
-
-router.get("/:id/detalle", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const detail = await svc.getDestinoDetalle(id);
-    if (!detail) {
-      return res.status(404).json({ message: "Destino no encontrado" });
-    }
-    res.json(detail);
-  } catch (error) {
-    console.error("❌ Error en /:id/detalle:", error);
-    res.status(500).json({ message: "Error al obtener el detalle del destino" });
   }
 });
 
