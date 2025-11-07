@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AutoDestinoGeo from "../../components/AutoDestinoGeo";
 import { destinosAppApi } from "../../services/destinosAppApi.js";
 import "./ExplorarDestinos.css";
@@ -166,6 +167,7 @@ export default function ExplorarDestinos() {
 }
 
 function DestinationCard({ destino, small = false }) {
+  const navigate = useNavigate();
   const name = destino.nombre;
   const country = destino.pais;
   const region = destino.region;
@@ -205,7 +207,21 @@ function DestinationCard({ destino, small = false }) {
 
         <div className="ex-card-footer">
           <div className="ex-price">USD {Number(price).toLocaleString()}</div>
-          <button className="ex-more">Ver más</button>
+          <button
+            className="ex-more"
+            onClick={() => {
+              const destinoId = destino.id || destino.destino_id || destino.destinoId;
+              if (!destinoId) {
+                console.warn("Destino sin ID válido", destino);
+                return;
+              }
+              navigate(`/explorar-destinos/${destinoId}`, {
+                state: { destino },
+              });
+            }}
+          >
+            Ver más
+          </button>
         </div>
       </div>
     </article>

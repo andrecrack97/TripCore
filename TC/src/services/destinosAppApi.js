@@ -21,4 +21,6 @@ export const destinosAppApi = {
     httpGet("/api/destinos-app/top", { country, season, climate, limit }),
 
   getById: (id) => httpGet(`/api/destinos-app/${id}`),
+
+  detalle: (id) => httpGet(`/api/destinos-app/${id}/detalle`),
 };

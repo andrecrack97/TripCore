@@ -65,8 +65,9 @@ router.get("/:id/sugerencias", async (req, res) => {
     console.log(`✅ Destino encontrado: ${destino.nombre || destino.name}`);
 
     // Usamos las funciones del service (evita depender de "pool" aquí)
+    const destinoNombre = destino.nombre || destino.name || "";
     const [transportes, hoteles, actividades] = await Promise.all([
-      svc.getTransportes({ destino_id: id, limit: 10, from_like: from }).catch(e => {
+      svc.getTransportes({ destino_id: id, limit: 10, from_like: from, destino_nombre: destinoNombre }).catch(e => {
         console.error("❌ Error obteniendo transportes:", e.message);
         return [];
       }),
@@ -98,6 +99,20 @@ router.get("/:id/sugerencias", async (req, res) => {
       hoteles: [], 
       actividades: [] 
     });
+  }
+});
+
+router.get("/:id/detalle", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const detail = await svc.getDestinoDetalle(id);
+    if (!detail) {
+      return res.status(404).json({ message: "Destino no encontrado" });
+    }
+    res.json(detail);
+  } catch (error) {
+    console.error("❌ Error en /:id/detalle:", error);
+    res.status(500).json({ message: "Error al obtener el detalle del destino" });
   }
 });
 

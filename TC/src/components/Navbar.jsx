@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import "./Navbar.css";
 import { UserContext } from "../context/UserContext.jsx";
 
@@ -15,24 +16,24 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <a href="/"><img src="/assets/Logo.png" alt="TripCore" className="navbar-logo"/></a>
+        <Link to="/"><img src="/assets/Logo.png" alt="TripCore" className="navbar-logo"/></Link>
       </div>
 
       <nav className="navbar-links">
-        <a href="/planificar">Planea tu viaje</a>
-        <a href="/explorar-destinos">Explorar destinos</a>
-        <a href="#explorar">Ofertas</a>
-        <a href="/MisViajes">Mis viajes</a>
-        <a href="#ayuda">Ayuda</a>
+        <Link to="/planificar">Planea tu viaje</Link>
+        <Link to="/explorar-destinos">Explorar destinos</Link>
+        <Link to="/ofertas">Ofertas</Link>
+        <Link to="/MisViajes">Mis viajes</Link>
+        <a href="/ayuda">Ayuda</a>
       </nav>
 
       <div className="navbar-right">
         {!isLogged ? (
-          <a href="/Login" className="btn-login">Iniciar sesión</a>
+          <Link to="/login" className="btn-login">Iniciar sesión</Link>
         ) : (
-          <a href="/Perfil" className="navbar-avatar">
+          <Link to="/perfil" className="navbar-avatar">
             <img src="/assets/avatar.png" alt="Perfil" />
-          </a>
+          </Link>
         )}
       </div>
     </header>
@@ -41,31 +42,3 @@ function Navbar() {
 
 export default Navbar;
 
-/*
-import React from "react";
-import "./Navbar.css";
-
-
-function Navbar() {
-  return (
-    <header className="navbar">
-      <div className="navbar-left">
-        <a href="/"><img src="/assets/Logo.png" alt="TripCore" className="navbar-logo"/></a>
-        
-      </div>
-      <nav className="navbar-links">
-        <a href="#inicio">Planea tu viaje</a>
-        <a href="#funcionalidades">Explorar destinos</a>
-        <a href="#explorar">Ofertas</a>
-        <a href="#explorar">Mis viajes</a>
-        <a href="#ayuda">Ayuda</a>
-      </nav>
-      <div className="navbar-right">
-       <a href="/Login" className="btn-login">Iniciar sesión</a>
-      </div>
-    </header>
-  );
-}
-
-export default Navbar;
-*/ 

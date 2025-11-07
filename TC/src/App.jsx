@@ -20,6 +20,7 @@ import Seguros from './views/Seguridad y seguros/Seguros';
 import ExplorarDestinos from './views/Explorar Destinos/ExplorarDestinos';
 import TripDetails from './views/Trip Details/TripDetails';
 import ExplorarDestinoVerMas from './views/Explorar Destinos Ver Mas/ExplorarDestinoVerMas';
+import Ofertas from './views/Ofertas/Ofertas';
 
 
 import RequireAuth from './components/RequireAuth';
@@ -48,6 +49,7 @@ export function App() {
           <Route path="/seguros" element={<Seguros />} />
           <Route path="/explorar-destinos" element={<ExplorarDestinos />} />
           <Route path="/explorar-destinos/:id" element={<ExplorarDestinoVerMas />} />
+          <Route path="/ofertas" element={<Ofertas />} />
           <Route path="/perfil" element={<Perfil/>} />
           <Route
             path="/planificar"
