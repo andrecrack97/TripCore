@@ -91,19 +91,32 @@ export default function MisViajes() {
     setDetails(null);
     try {
       const id = trip.id_viaje || trip.id;
-      const res = await fetch(`${API_BASE}/api/viajes/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
+      const [res, resChk] = await Promise.all([
+        fetch(`${API_BASE}/api/viajes/${id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }),
+        fetch(`${API_BASE}/api/viajes/${id}/valija`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        })
+      ]);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData?.message || `Error ${res.status}`);
       }
       const data = await res.json();
+      let checklist = [];
+      if (resChk.ok) {
+        const js = await resChk.json().catch(() => ({}));
+        checklist = Array.isArray(js.items) ? js.items : [];
+      }
       console.log("Detalles del viaje cargados:", data);
-      setDetails(data);
+      setDetails({ ...data, valija: checklist });
     } catch (e) {
       console.error("Error cargando detalles:", e);
       setDetailsError(e.message);
@@ -240,6 +253,18 @@ function Header({ onSearch, value, onNewTrip, active, setActive, subtitle }) {
 }
 
 function TripCard({ trip, onDetails }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!(e.target.closest && e.target.closest(`[data-dd="${trip.id_viaje || trip.id}"]`))) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [trip]);
   const {
     titulo,
     destino,
@@ -281,12 +306,13 @@ function TripCard({ trip, onDetails }) {
             >
               Ver Detalles
             </button>
-            <div className="dropdown">
-              <button className="btn btn--ghost">Adicionales ▾</button>
+            <div className={`dropdown ${open ? "is-open" : ""}`} data-dd={id}>
+              <button className="btn btn--ghost" onClick={() => setOpen(v => !v)}>
+                Adicionales <span style={{marginLeft:6}}>▾</span>
+              </button>
               <div className="dropdown-menu">
-                <button>Itinerario</button>
-                <button>Gastos</button>
-                <button>Compartir</button>
+                <button onClick={() => { setOpen(false); navigate(`/seguros`); }}>Seguros</button>
+                <button onClick={() => { try { localStorage.setItem('lastTripId', String(id)); } catch {} setOpen(false); navigate(`/viajes/${id}/valija`); }}>Preparar Valija</button>
               </div>
             </div>
           </div>

@@ -1,0 +1,162 @@
+/* Wrapper */
+.pv-wrap {
+  padding: 18px 20px 32px;
+  background: #faf8ff;
+  min-height: 100%;
+  border-radius: 12px;
+}
+
+.pv-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.pv-head-left h1 {
+  margin: 0 0 6px 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c235a;
+}
+.pv-trip-title {
+  font-weight: 600;
+  color: #3a2b8a;
+}
+.pv-trip-sub {
+  font-size: 13px;
+  color: #7a6db8;
+}
+.pv-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.pv-tag {
+  background: #efe9ff;
+  color: #5b4aa5;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.pv-head-right {
+  display: flex;
+  gap: 10px;
+}
+.pv-btn {
+  height: 36px;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 13.5px;
+  border: 1px solid #e6ddff;
+  background: #fff;
+  color: #5a4f8f;
+  cursor: pointer;
+}
+.pv-btn--primary {
+  background: #6a00ff;
+  color: #fff;
+  border-color: #6a00ff;
+  box-shadow: 0 6px 14px rgba(106, 0, 255, 0.25);
+}
+
+.pv-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.pv-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #ece6ff;
+  padding: 12px;
+}
+.pv-card-title {
+  font-weight: 700;
+  color: #2a2160;
+  margin-bottom: 8px;
+}
+.pv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.pv-item label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  color: #4b3b98;
+}
+.pv-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pv-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+.pv-trash {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #e6ddff;
+  background: #fff;
+  color: #8a7fd1;
+  cursor: pointer;
+}
+.pv-trash:hover { background: #f7f4ff; }
+
+.pv-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pv-add input {
+  flex: 1;
+  height: 34px;
+  border: 1px solid #e6ddff;
+  border-radius: 8px;
+  padding: 0 10px;
+  outline: none;
+}
+.pv-add button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e6ddff;
+  background: #faf8ff;
+  cursor: pointer;
+}
+
+.pv-skel {
+  height: 240px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e8e0ff 25%, #f2ecff 37%, #e8e0ff 63%);
+  background-size: 400% 100%;
+  animation: pvshimmer 1.2s infinite;
+}
+@keyframes pvshimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+.pv-error {
+  background: #fff2f2;
+  border: 1px solid #ffd7d7;
+  padding: 16px;
+  border-radius: 10px;
+  color: #8a1f1f;
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+
+

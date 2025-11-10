@@ -640,4 +640,101 @@ router.patch("/:id/favorite", auth, async (req, res) => {
   }
 });
 
+// ===== Checklist Valija =====
+// GET /api/viajes/:id/valija - obtener checklist guardada del viaje
+router.get("/:id/valija", auth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "ID inválido" });
+
+    // verificar pertenencia del viaje
+    const check = await pool.query(
+      `SELECT 1 FROM viajes WHERE id_viaje = $1 AND id_usuario = $2 LIMIT 1`,
+      [id, req.userId]
+    );
+    if (check.rowCount === 0) return res.status(404).json({ success: false, message: "Viaje no encontrado" });
+
+    const { rows } = await pool.query(
+      `SELECT id_valija, id_viaje, item, COALESCE(marcado, false) AS marcado
+         FROM checklist_valija
+        WHERE id_viaje = $1
+        ORDER BY id_valija ASC`,
+      [id]
+    );
+    return res.json({ items: rows });
+  } catch (err) {
+    console.error("❌ Error al obtener valija:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// PUT /api/viajes/:id/valija - reemplazar checklist completa
+router.put("/:id/valija", auth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.status(400).json({ success: false, message: "ID inválido" });
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+
+    // verificar pertenencia del viaje
+    const check = await client.query(
+      `SELECT 1 FROM viajes WHERE id_viaje = $1 AND id_usuario = $2 LIMIT 1`,
+      [id, req.userId]
+    );
+    if (check.rowCount === 0) {
+      client.release();
+      return res.status(404).json({ success: false, message: "Viaje no encontrado" });
+    }
+
+    await client.query("BEGIN");
+    await client.query(`DELETE FROM checklist_valija WHERE id_viaje = $1`, [id]);
+
+    const inserted = [];
+    for (const it of items) {
+      const text = (it?.item || "").toString().slice(0, 100);
+      if (!text) continue;
+      const marcado = !!it?.marcado;
+      const r = await client.query(
+        `INSERT INTO checklist_valija (id_viaje, item, marcado)
+         VALUES ($1, $2, $3) RETURNING id_valija, id_viaje, item, marcado`,
+        [id, text, marcado]
+      );
+      inserted.push(r.rows[0]);
+    }
+
+    await client.query("COMMIT");
+    client.release();
+    return res.json({ success: true, items: inserted });
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch {}
+    client.release();
+    console.error("❌ Error al guardar valija:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
+// DELETE /api/viajes/valija/:id_valija - eliminar un item puntual
+router.delete("/valija/:idValija", auth, async (req, res) => {
+  try {
+    const idValija = parseInt(req.params.idValija, 10);
+    if (!Number.isFinite(idValija)) return res.status(400).json({ success: false, message: "ID inválido" });
+
+    // verificar que pertenezca al usuario (join con viajes)
+    const del = await pool.query(
+      `DELETE FROM checklist_valija cv
+        USING viajes v
+        WHERE cv.id_valija = $1
+          AND v.id_viaje = cv.id_viaje
+          AND v.id_usuario = $2
+        RETURNING cv.id_valija`,
+      [idValija, req.userId]
+    );
+    if (del.rowCount === 0) return res.status(404).json({ success: false, message: "No encontrado" });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error al borrar item valija:", err);
+    return res.status(500).json({ success: false, message: "Error del servidor" });
+  }
+});
+
 module.exports = router;
