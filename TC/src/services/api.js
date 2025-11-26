@@ -71,4 +71,14 @@ export async function fetchExplorarDestinoDetalle(params = {}) {
   export async function fetchAlertasSanitarias() {
     return API.get(`/api/seguros/alertas`);
   }
+
+  
+  export async function fetchHoteles(city) {
+    const qs = new URLSearchParams({ city }).toString();
+    const response = await fetch(`/api/hoteles${qs ? `?${qs}` : ""}`);
+    if (!response.ok) {
+      throw new Error('Error al obtener hoteles');
+    }
+    return await response.json();
+  }
   
