@@ -1,64 +1,60 @@
+// routes/hoteles.js
 const express = require("express");
-const axios = require("axios");
+const Amadeus = require("amadeus");
 
 const router = express.Router();
 
-// Obtiene el token de acceso de Amadeus (OAuth2 client_credentials)
-async function getAmadeusToken() {
-  const baseUrl = process.env.AMADEUS_BASE_URL || "https://test.api.amadeus.com";
-  const url = `${baseUrl}/v1/security/oauth2/token`;
+// Asegurate de que en server.js o app.js tengas: require("dotenv").config();
+const amadeus = new Amadeus({
+  clientId: process.env.AMADEUS_CLIENT_ID,
+  clientSecret: process.env.AMADEUS_CLIENT_SECRET,
+  // test por defecto, no hace falta hostname: 'test'
+});
 
-  const body = new URLSearchParams({
-    grant_type: "client_credentials",
-    client_id: process.env.AMADEUS_API_KEY,
-    client_secret: process.env.AMADEUS_API_SECRET,
-  });
-
-  const resp = await axios.post(url, body.toString(), {
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  });
-
-  return resp.data.access_token;
-}
-
-// GET /api/hoteles?city=paris  o  /api/hoteles?city=barcelona
+// GET /api/hoteles?city=paris|barcelona
 router.get("/", async (req, res) => {
   try {
     const city = (req.query.city || "").toLowerCase();
 
-    let cityCode;
-    if (city === "paris" || city === "parís") cityCode = "PAR";
-    else if (city === "barcelona" || city === "bcn") cityCode = "BCN";
-    else {
-      return res
-        .status(400)
-        .json({ message: "Usá ?city=paris o ?city=barcelona" });
+    let cityCode = null;
+    if (city === "paris") cityCode = "PAR";
+    if (city === "barcelona") cityCode = "BCN";
+
+    if (!cityCode) {
+      return res.status(400).json({ message: "City debe ser paris o barcelona" });
     }
 
-    const token = await getAmadeusToken();
-    const baseUrl = process.env.AMADEUS_BASE_URL || "https://test.api.amadeus.com";
-    const url = `${baseUrl}/v1/reference-data/locations/hotels/by-city`;
-
-    const hotelsResp = await axios.get(url, {
-      params: { cityCode },
-      headers: { Authorization: `Bearer ${token}` },
+    // Hotel List API: lista de hoteles por código de ciudad
+    const response = await amadeus.referenceData.locations.hotels.byCity.get({
+      cityCode, // PAR o BCN
     });
 
-    const hotels = (hotelsResp.data.data || []).map((h) => ({
-      id: h.hotelId,
+    // Estructuramos la data para el front
+    const hotels = (response.data || []).map((h) => ({
+      id: h.hotelId || h.hotel?.hotelId || h.id,
       name: h.name,
-      cityCode: h.cityCode,
+      cityCode: h.iataCode || cityCode,
       latitude: h.geoCode?.latitude,
       longitude: h.geoCode?.longitude,
-      chainCode: h.chainCode,
+      // en Hotel List casi nunca viene precio; lo dejamos null
+      price_night_usd: null,
+      stars: h.rating ? Number(h.rating) : null,
     }));
 
-    res.json({ city, cityCode, hotels });
+    return res.json({ hotels });
   } catch (err) {
-    console.error("Error en /api/hoteles:", err.response?.data || err.message);
-    res
-      .status(500)
-      .json({ message: "Error consultando hoteles en la API de Amadeus" });
+    // 👇 Acá logueamos MUCHÍSIMO más detalle
+    const status = err.response?.statusCode || 500;
+    const amadeusBody = err.response?.data || err.response?.body || err.message || err;
+
+    console.error("Error consultando hoteles en Amadeus:");
+    console.error("HTTP Status:", status);
+    console.error("Detalles:", JSON.stringify(amadeusBody, null, 2));
+
+    return res.status(status).json({
+      message: "Error consultando hoteles en la API de Amadeus",
+      amadeus: amadeusBody, // así también lo podés ver en la pestaña Network
+    });
   }
 });
 

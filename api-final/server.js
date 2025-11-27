@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
+const hotelesRouter = require("./routes/hoteles");
 
 // Middlewares
 app.use(cors());
@@ -15,6 +16,7 @@ app.use("/api/viajes", require("./routes/viajes"));
 app.use("/api/me", require("./routes/me"));
 app.use("/api/seguros", require("./routes/seguros"));
 app.use("/api/hoteles", require("./routes/hoteles"));
+app.use("/api/hoteles", hotelesRouter);
 
 
 // Rutas GEO (módulo GeoDB)

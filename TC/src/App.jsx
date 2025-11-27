@@ -22,6 +22,8 @@ import ExplorarDestinos from './views/Explorar Destinos/ExplorarDestinos';
 import TripDetails from './views/Trip Details/TripDetails';
 import ExplorarDestinoVerMas from './views/Explorar Destinos Ver Mas/ExplorarDestinoVerMas';
 import Ofertas from './views/Ofertas/Ofertas';
+import HotelesAmadeus from "./views/HotelesAmadeus/HotelesAmadeus";
+
 
 
 import RequireAuth from './components/RequireAuth';
@@ -117,6 +119,7 @@ export function App() {
               </RequireAuth>
             }
           />
+        <Route path="/hoteles/:city" element={<HotelesAmadeus />} />
         </Routes>
       </main>
       <Footer />
