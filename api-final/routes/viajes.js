@@ -551,8 +551,49 @@ router.patch("/:id", auth, async (req, res) => {
       values.push(transporte_id || null);
     }
     if (hotel_id !== undefined) {
-      updates.push(`hotel_id = $${paramIndex++}`);
-      values.push(hotel_id || null);
+      // Si el hotel_id es de Amadeus (empieza con 'ej-' o 'hotel-'), no lo guardamos directamente
+      // porque no existe en la BD. En su lugar, se debería haber creado primero.
+      // Pero si viene un UUID válido, lo guardamos normalmente
+      const isAmadeusHotel = hotel_id && (typeof hotel_id === 'string' && (hotel_id.startsWith('ej-') || hotel_id.startsWith('hotel-')));
+      if (!isAmadeusHotel) {
+        updates.push(`hotel_id = $${paramIndex++}`);
+        values.push(hotel_id || null);
+      } else {
+        console.warn(`⚠️ Hotel ID de Amadeus detectado (${hotel_id}), se debe crear primero en la BD antes de guardar`);
+      }
+    }
+    
+    // Si viene hotel_amadeus_data, crear el hotel en la BD primero
+    if (req.body.hotel_amadeus_data && req.body.destino_id) {
+      try {
+        const hotelData = req.body.hotel_amadeus_data;
+        const hotelInsert = await pool.query(
+          `INSERT INTO hoteles (name, destino_id, stars, rating, price_night_usd, address, image_url, link_url)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT DO NOTHING
+           RETURNING id`,
+          [
+            hotelData.name,
+            req.body.destino_id,
+            hotelData.stars || null,
+            hotelData.rating || null,
+            hotelData.price_night_usd || null,
+            hotelData.address || null,
+            hotelData.image_url || null,
+            hotelData.link_url || null
+          ]
+        );
+        
+        if (hotelInsert.rows.length > 0) {
+          const nuevoHotelId = hotelInsert.rows[0].id;
+          updates.push(`hotel_id = $${paramIndex++}`);
+          values.push(nuevoHotelId);
+          console.log(`✅ Hotel de Amadeus creado en BD con ID: ${nuevoHotelId}`);
+        }
+      } catch (hotelErr) {
+        console.error("❌ Error al crear hotel de Amadeus:", hotelErr);
+        // No fallar el guardado por esto, solo loguear
+      }
     }
     if (actividades_ids !== undefined) {
       // Manejar array de actividades_ids correctamente

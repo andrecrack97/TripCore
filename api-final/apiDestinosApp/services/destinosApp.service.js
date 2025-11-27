@@ -89,7 +89,7 @@ async function getTransportes({ destino_id, limit = 3, from_like, destino_nombre
     
     const sql = `SELECT id, kind, provider, 
               from_city, to_city, from_country, to_country,
-              duration,
+              duration_min,
               price_usd, carbon_kg, link_url, rating
        FROM transportes
        WHERE ${whereParts.join(" AND ")}
@@ -108,7 +108,7 @@ async function getTransportes({ destino_id, limit = 3, from_like, destino_nombre
       const fallbackParams = [destino_id, limit];
       const fallbackSql = `SELECT id, kind, provider, 
                 from_city, to_city, from_country, to_country,
-                duration,
+                duration_min,
                 price_usd, carbon_kg, link_url, rating
          FROM transportes
          WHERE destino_id = $1
@@ -124,9 +124,9 @@ async function getTransportes({ destino_id, limit = 3, from_like, destino_nombre
     if (rows.length === 0 && destino_nombre && !destino_id) {
       console.log("⚠️ Intentando buscar solo por nombre de destino...");
       const nombreParams = [`%${destino_nombre.trim()}%`, limit];
-      const nombreSql = `SELECT id, kind, provider, 
+          const nombreSql = `SELECT id, kind, provider, 
                 from_city, to_city, from_country, to_country,
-                duration,
+                duration_min,
                 price_usd, carbon_kg, link_url, rating
          FROM transportes
          WHERE (LOWER(to_city) ILIKE LOWER($1) OR LOWER(to_country) ILIKE LOWER($1))
@@ -151,7 +151,7 @@ async function getTransportes({ destino_id, limit = 3, from_like, destino_nombre
           const params = [`%${destino_nombre.trim()}%`, limit];
           const sql = `SELECT id, kind, provider, 
                     from_city, to_city, from_country, to_country,
-                    duration,
+                    duration_min,
                     price_usd, carbon_kg, link_url, rating
              FROM transportes
              WHERE (LOWER(to_city) ILIKE LOWER($1) OR LOWER(to_country) ILIKE LOWER($1))

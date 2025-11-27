@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { destinosAppApi } from "../../services/destinosAppApi";
 import { viajesApi } from "../../services/viajesApi";
 import "./PlanificarViaje5.css";
@@ -16,6 +16,7 @@ function diffNights(startISO, endISO) {
 export default function PlanificarViaje5() {
   const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
   const nav = useNavigate();
+  const location = useLocation();
 
   const [plan, setPlan] = useState(null);
   const [sug, setSug] = useState(null);
@@ -32,16 +33,47 @@ export default function PlanificarViaje5() {
 
   // cargar plan local (NO crear viaje aquí, se crea al guardar)
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("planificarViaje");
-      if (!raw) return;
+    const loadPlan = () => {
+      try {
+        const raw = localStorage.getItem("planificarViaje");
+        if (!raw) return;
 
-      const planData = JSON.parse(raw);
-      setPlan(planData);
-    } catch (e) {
-      console.error("Error al cargar plan:", e);
-      setError("Error al cargar el plan del viaje.");
-    }
+        const planData = JSON.parse(raw);
+        setPlan(planData);
+      } catch (e) {
+        console.error("Error al cargar plan:", e);
+        setError("Error al cargar el plan del viaje.");
+      }
+    };
+    
+    loadPlan();
+    
+    // Recargar el plan cuando se vuelve de otra página
+    const handleFocus = () => {
+      const raw = localStorage.getItem("planificarViaje");
+      if (raw) {
+        try {
+          const planData = JSON.parse(raw);
+          setPlan(planData);
+        } catch (e) {
+          console.error("Error al recargar plan:", e);
+        }
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    // También escuchar cambios en localStorage
+    const handleStorageChange = (e) => {
+      if (e.key === 'planificarViaje') {
+        loadPlan();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const nights = useMemo(
@@ -53,19 +85,53 @@ export default function PlanificarViaje5() {
     [plan?.fecha_salida, plan?.fecha_vuelta, plan?.fechaIda, plan?.fechaVuelta]
   );
 
+  // Detectar cuando se vuelve de otra página para recargar el plan
+  useEffect(() => {
+    if (location.state?.reload) {
+      // Recargar el plan cuando se vuelve de la página de hoteles
+      try {
+        const raw = localStorage.getItem("planificarViaje");
+        if (raw) {
+          const planData = JSON.parse(raw);
+          setPlan(planData);
+        }
+      } catch (e) {
+        console.error("Error al recargar plan:", e);
+      }
+      // Limpiar el estado para evitar recargas infinitas
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // cargar sugerencias (resuelve id si vino de GeoDB) + hoteles Amadeus
   useEffect(() => {
     (async () => {
       if (!plan) return;
+      
+      // Siempre recargar el plan desde localStorage para asegurar que tenemos la última versión
+      let currentPlan = plan;
+      try {
+        const raw = localStorage.getItem("planificarViaje");
+        if (raw) {
+          const latestPlan = JSON.parse(raw);
+          currentPlan = latestPlan;
+          // Actualizar el estado del plan si hay cambios
+          if (JSON.stringify(latestPlan) !== JSON.stringify(plan)) {
+            setPlan(latestPlan);
+          }
+        }
+      } catch (e) {
+        console.warn("No se pudo recargar plan:", e);
+      }
+      
       try {
         setLoading(true);
         setError("");
 
-        let destinoId = plan.destino?.id;
-        let currentPlan = plan;
+        let destinoId = currentPlan.destino?.id;
 
         // Resolver destino si no tiene ID
-        if (!destinoId && plan.destino?.nombre && plan.destino?.pais) {
+        if (!destinoId && currentPlan.destino?.nombre && currentPlan.destino?.pais) {
           try {
             const r = await destinosAppApi.resolve(
               plan.destino.nombre,
@@ -74,8 +140,8 @@ export default function PlanificarViaje5() {
             if (r?.data?.id) {
               destinoId = r.data.id;
               currentPlan = {
-                ...plan,
-                destino: { ...plan.destino, id: destinoId },
+                ...currentPlan,
+                destino: { ...currentPlan.destino, id: destinoId },
               };
               localStorage.setItem(
                 "planificarViaje",
@@ -93,7 +159,7 @@ export default function PlanificarViaje5() {
 
         // Si aún no tenemos destinoId, intentar buscar por nombre
         if (!destinoId) {
-          const destinoNombre = plan.destino?.nombre || plan.destino?.name;
+          const destinoNombre = currentPlan.destino?.nombre || currentPlan.destino?.name;
           if (destinoNombre) {
             try {
               const resp = await fetch(
@@ -114,8 +180,8 @@ export default function PlanificarViaje5() {
                 if (destinoEncontrado?.id) {
                   destinoId = destinoEncontrado.id;
                   currentPlan = {
-                    ...plan,
-                    destino: { ...plan.destino, id: destinoId },
+                    ...currentPlan,
+                    destino: { ...currentPlan.destino, id: destinoId },
                   };
                   localStorage.setItem(
                     "planificarViaje",
@@ -146,9 +212,9 @@ export default function PlanificarViaje5() {
         // Endpoint de sugerencias
         const origin = encodeURIComponent(
           (
-            plan.origen?.nombre ||
-            plan.origen?.name ||
-            plan.origen?.ciudad ||
+            currentPlan.origen?.nombre ||
+            currentPlan.origen?.name ||
+            currentPlan.origen?.ciudad ||
             ""
           ).toString()
         );
@@ -166,11 +232,41 @@ export default function PlanificarViaje5() {
         const json = await resp.json();
         console.log("Sugerencias recibidas:", json);
 
+        // Si hay un hotel de Amadeus seleccionado, agregarlo a las sugerencias
+        let hotelesList = json.hoteles || [];
+        if (currentPlan.hotel_amadeus) {
+          const hotelAmadeus = {
+            id: currentPlan.hotel_amadeus.id,
+            name: currentPlan.hotel_amadeus.name,
+            price_night_usd: currentPlan.hotel_amadeus.price_night_usd,
+            stars: currentPlan.hotel_amadeus.stars,
+            rating: currentPlan.hotel_amadeus.rating,
+            address: currentPlan.hotel_amadeus.address,
+            image_url: currentPlan.hotel_amadeus.image_url,
+            source: 'amadeus'
+          };
+          // Solo agregar si no existe ya
+          if (!hotelesList.some(h => h.id === hotelAmadeus.id)) {
+            hotelesList = [...hotelesList, hotelAmadeus];
+          }
+        }
+
+        // Mapear transportes para asegurar que tengan duration_min si viene duration
+        const transportesMapeados = (json.transportes || []).map(t => ({
+          ...t,
+          duration_min: t.duration_min || t.duration || null
+        }));
+
         setSug({
-          transportes: json.transportes || [],
-          hoteles: json.hoteles || [],
+          transportes: transportesMapeados,
+          hoteles: hotelesList,
           actividades: json.actividades || [],
         });
+
+        // Seleccionar el hotel de Amadeus si existe
+        if (currentPlan.hotel_amadeus) {
+          setPick((p) => ({ ...p, hotel_id: currentPlan.hotel_amadeus.id }));
+        }
 
         // ---------- Hoteles desde API Amadeus (solo París / Barcelona) ----------
         try {
@@ -181,9 +277,12 @@ export default function PlanificarViaje5() {
           ).toLowerCase();
 
           let amadeusCity = null;
-          if (destinoNombreLower.includes("paris")) amadeusCity = "paris";
-          else if (destinoNombreLower.includes("barcelona"))
+          // Detectar París con diferentes variantes (paris, parís, etc.)
+          if (destinoNombreLower.includes("paris") || destinoNombreLower.includes("parís")) {
+            amadeusCity = "paris";
+          } else if (destinoNombreLower.includes("barcelona")) {
             amadeusCity = "barcelona";
+          }
 
           if (amadeusCity) {
             const respHotels = await fetch(
@@ -221,6 +320,7 @@ export default function PlanificarViaje5() {
       }
     })();
   }, [plan, API_BASE]);
+
 
   // helpers de selección
   const setTransporte = (id) =>
@@ -316,10 +416,150 @@ export default function PlanificarViaje5() {
           JSON.stringify(updatedPlan)
         );
         setPlan(updatedPlan);
+        
+        // Si no tenemos destino_id, intentar obtenerlo del viaje creado
+        if (!updatedPlan.destino?.id && id_viaje) {
+          try {
+            const token = localStorage.getItem("token");
+            const headers = {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            };
+            const tripRes = await fetch(`${API_BASE}/api/viajes/${id_viaje}`, { headers });
+            if (tripRes.ok) {
+              const tripDetails = await tripRes.json();
+              if (tripDetails?.destino_id) {
+                updatedPlan.destino = { ...updatedPlan.destino, id: tripDetails.destino_id };
+                localStorage.setItem("planificarViaje", JSON.stringify(updatedPlan));
+                setPlan(updatedPlan);
+              }
+            }
+          } catch (e) {
+            console.warn("No se pudo obtener el destino_id del viaje:", e);
+          }
+        }
+      }
+
+      // Si hay un hotel de Amadeus seleccionado, primero crearlo en la BD
+      let hotelIdFinal = pick.hotel_id;
+      // Verificar si el hotel seleccionado es de Amadeus
+      const isAmadeusHotel = plan?.hotel_amadeus && 
+                             pick.hotel_id && 
+                             (pick.hotel_id === plan.hotel_amadeus.id || 
+                              pick.hotel_id.startsWith('ej-') || 
+                              pick.hotel_id.startsWith('hotel-') ||
+                              (hotelSel && hotelSel.source === 'amadeus'));
+      
+      if (isAmadeusHotel && plan.hotel_amadeus) {
+        try {
+          const hotelAmadeus = plan.hotel_amadeus;
+          // Recargar el plan para asegurar que tenemos el destino_id actualizado
+          let currentPlan = plan;
+          try {
+            const raw = localStorage.getItem("planificarViaje");
+            if (raw) {
+              currentPlan = JSON.parse(raw);
+            }
+          } catch (e) {
+            console.warn("No se pudo recargar plan:", e);
+          }
+          
+          let destinoId = currentPlan.destino?.id;
+          const destinoNombre = currentPlan.destino?.nombre || currentPlan.destino?.name;
+          const destinoPais = currentPlan.destino?.pais || currentPlan.destino?.country;
+          
+          // Si aún no tenemos destino_id y tenemos id_viaje, intentar obtenerlo del viaje
+          if (!destinoId && id_viaje) {
+            try {
+              const tripRes = await fetch(`${API_BASE}/api/viajes/${id_viaje}`, {
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { Authorization: `Bearer ${token}` } : {})
+                }
+              });
+              if (tripRes.ok) {
+                const tripDetails = await tripRes.json();
+                if (tripDetails?.destino_id) {
+                  destinoId = tripDetails.destino_id;
+                }
+              }
+            } catch (e) {
+              console.warn("No se pudo obtener el destino_id del viaje:", e);
+            }
+          }
+          
+          // Si no hay destino_id, intentar resolverlo primero
+          if (!destinoId && destinoNombre) {
+            try {
+              // Intentar buscar el destino usando autocomplete
+              const autocompleteRes = await destinosAppApi.autocomplete({ q: destinoNombre, limit: 5 });
+              if (autocompleteRes?.data && Array.isArray(autocompleteRes.data)) {
+                // Buscar una coincidencia exacta
+                const match = autocompleteRes.data.find(
+                  (d) => 
+                    d.nombre?.toLowerCase() === destinoNombre.toLowerCase() ||
+                    d.name?.toLowerCase() === destinoNombre.toLowerCase()
+                );
+                if (match?.id) {
+                  destinoId = match.id;
+                  // Actualizar el plan con el destino resuelto
+                  const updatedPlan = { ...plan, destino: { ...plan.destino, id: destinoId } };
+                  localStorage.setItem("planificarViaje", JSON.stringify(updatedPlan));
+                  setPlan(updatedPlan);
+                }
+              }
+            } catch (resolveError) {
+              console.warn("No se pudo resolver el destino automáticamente:", resolveError);
+            }
+          }
+
+          // Crear el hotel en la BD
+          const token = localStorage.getItem("token");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          };
+
+          const createHotelResp = await fetch(`${API_BASE}/api/hoteles`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              name: hotelAmadeus.name,
+              destino_id: destinoId || null,
+              destino_nombre: destinoNombre || null,
+              destino_pais: destinoPais || null,
+              stars: hotelAmadeus.stars || null,
+              rating: hotelAmadeus.rating || null,
+              price_night_usd: hotelAmadeus.price_night_usd || null,
+              address: hotelAmadeus.address || null,
+              image_url: hotelAmadeus.image_url || null,
+              link_url: null
+            })
+          });
+
+          if (!createHotelResp.ok) {
+            const errorText = await createHotelResp.text();
+            console.error("Error al crear hotel:", errorText);
+            throw new Error(`Error al crear hotel en la base de datos: ${createHotelResp.status}`);
+          }
+
+          const hotelCreated = await createHotelResp.json();
+          hotelIdFinal = hotelCreated.hotel?.id || hotelCreated.id;
+          
+          if (!hotelIdFinal) {
+            throw new Error("No se recibió el ID del hotel creado.");
+          }
+
+          console.log(`✅ Hotel de Amadeus creado en BD con ID: ${hotelIdFinal}`);
+        } catch (hotelError) {
+          console.error("Error al crear hotel de Amadeus:", hotelError);
+          throw new Error(`No se pudo guardar el hotel: ${hotelError.message}`);
+        }
       }
 
       await viajesApi.patch(id_viaje, {
         ...pick,
+        hotel_id: hotelIdFinal, // Usar el ID del hotel creado en la BD
         presupuesto_total:
           plan?.presupuesto || plan?.presupuesto_total || null,
         origen_ciudad:
@@ -359,8 +599,12 @@ export default function PlanificarViaje5() {
 
   const destinoLower = destinoNombre.toLowerCase();
   let amadeusCity = null;
-  if (destinoLower.includes("paris")) amadeusCity = "paris";
-  else if (destinoLower.includes("barcelona")) amadeusCity = "barcelona";
+  // Detectar París con diferentes variantes (paris, parís, etc.)
+  if (destinoLower.includes("paris") || destinoLower.includes("parís")) {
+    amadeusCity = "paris";
+  } else if (destinoLower.includes("barcelona")) {
+    amadeusCity = "barcelona";
+  }
 
   return (
     <div className="pv5-bg">
@@ -407,18 +651,21 @@ export default function PlanificarViaje5() {
             {/* Transporte */}
             <section className="pv5-section">
               <h2>Transporte sugerido</h2>
-              {sug.transportes?.map((t) => (
+              {sug.transportes && sug.transportes.length > 0 ? (
+                sug.transportes.map((t) => (
                 <div key={t.id} className="pv5-transport">
                   <div>
                     <b>{t.provider}</b> —{" "}
                     {t.kind === "flight" ? "Vuelo" : t.kind}
                     <div className="muted">
-                      {t.from_city} → {t.to_city} (
-                      {Math.round((t.duration_min || 0) / 60)}h)
+                      {t.from_city || t.origen || t.from || "-"} → {t.to_city || t.destino || t.to || "-"}
+                      {((t.duration || t.duration_min) && (
+                        ` (${Math.round(((t.duration || t.duration_min || 0) / 60) || 0)}h)`
+                      ))}
                     </div>
                   </div>
                   <div className="pv5-price">
-                    USD {t.price_usd}
+                    USD {t.price_usd || t.precio || 0}
                   </div>
                   <button
                     onClick={() => setTransporte(t.id)}
@@ -435,7 +682,10 @@ export default function PlanificarViaje5() {
                       : "Reservar"}
                   </button>
                 </div>
-              ))}
+              ))
+              ) : (
+                <p className="muted">No hay transportes disponibles para este destino.</p>
+              )}
             </section>
 
             {/* Hoteles */}
@@ -491,38 +741,6 @@ export default function PlanificarViaje5() {
                   );
                 })}
               </div>
-
-              {/* Bloque de hoteles desde Amadeus */}
-              {amadeusHotels?.length > 0 && (
-                <>
-                  <h3 className="pv5-subtitle">
-                    Hoteles desde API Amadeus (París / Barcelona)
-                  </h3>
-                  <div className="pv5-grid">
-                    {amadeusHotels.map((h) => (
-                      <div
-                        key={h.id || h.hotelId}
-                        className="pv5-hotel-card"
-                      >
-                        <div className="pv5-hotel-body">
-                          <h3>{h.name}</h3>
-                          <p className="muted">
-                            Ciudad: {h.cityCode || "-"}
-                          </p>
-                          {h.latitude && h.longitude && (
-                            <p className="muted">
-                              Coords: {h.latitude}, {h.longitude}
-                            </p>
-                          )}
-                          <p className="muted">
-                            Fuente: Amadeus API (sandbox)
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
 
               {/* Botón Ver más hoteles (nueva página con filtros) */}
               {amadeusCity && (

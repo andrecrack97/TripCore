@@ -86,9 +86,13 @@ function AutoDestinoGeo({
   }, [debounced, countryIds]);
 
   function handlePick(city) {
-    setQuery(formatCity(city));
+    const formatted = formatCity(city);
+    setQuery(formatted);
     setOpen(false);
-    onSelect?.(city);
+    // Llamar a onSelect inmediatamente con el objeto completo
+    if (onSelect) {
+      onSelect(city);
+    }
   }
 
   function formatCity(c) {
@@ -118,7 +122,11 @@ function AutoDestinoGeo({
               type="button"
               key={`${c.source}-${c.id}-${idx}`}
               className="dest-item"
-              onClick={() => handlePick(c)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePick(c);
+              }}
             >
               <div className="dest-item-title">{formatCity(c)}</div>
               {c.source === "geodb" && <div className="dest-item-sub">Sugerencia externa</div>}

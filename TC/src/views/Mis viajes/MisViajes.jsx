@@ -369,6 +369,20 @@ function handleNewTrip() {
 
 // Modal de detalles
 function DetailsModal({ onClose, loading, error, trip }) {
+  const navigate = useNavigate();
+  const tripId = trip?.id_viaje || trip?.id;
+  const hasValija = trip?.valija && Array.isArray(trip.valija) && trip.valija.length > 0;
+  
+  const handleValijaClick = () => {
+    if (tripId) {
+      try {
+        localStorage.setItem('lastTripId', String(tripId));
+      } catch {}
+      navigate(`/viajes/${tripId}/valija`);
+      onClose();
+    }
+  };
+
   return (
     <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000}}>
       <div style={{background:"#fff", borderRadius:12, width:"min(920px, 95vw)", maxHeight:"90vh", overflow:"auto", padding:16}}>
@@ -480,6 +494,27 @@ function DetailsModal({ onClose, loading, error, trip }) {
                 </ul>
               ) : <div className="td-empty">Sin actividades seleccionadas</div>}
             </section>
+
+            {tripId && (
+              <section className="td-card" style={{gridColumn:"1 / -1"}}>
+                <div className="td-card__title">Valija</div>
+                {hasValija ? (
+                  <div>
+                    <p style={{marginBottom: 12}}>Tienes {trip.valija.length} {trip.valija.length === 1 ? 'item' : 'items'} en tu lista de valija.</p>
+                    <button className="btn btn--primary" onClick={handleValijaClick}>
+                      Ver/Editar Valija
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{marginBottom: 12}}>Aún no has preparado tu valija para este viaje.</p>
+                    <button className="btn btn--primary" onClick={handleValijaClick}>
+                      Preparar Valija
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </div>

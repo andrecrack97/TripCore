@@ -15,7 +15,6 @@ app.use("/api/usuarios", require("./routes/usuarios"));
 app.use("/api/viajes", require("./routes/viajes"));
 app.use("/api/me", require("./routes/me"));
 app.use("/api/seguros", require("./routes/seguros"));
-app.use("/api/hoteles", require("./routes/hoteles"));
 app.use("/api/hoteles", hotelesRouter);
 
 

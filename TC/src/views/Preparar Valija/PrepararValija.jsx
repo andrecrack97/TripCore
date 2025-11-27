@@ -98,6 +98,7 @@ export default function PrepararValija() {
   const [trip, setTrip] = useState(null);
   const [customItems, setCustomItems] = useState({});
   const [checked, setChecked] = useState({});
+  const [removedItems, setRemovedItems] = useState(new Set());
   const token = (() => { try { return localStorage.getItem("token"); } catch { return null; } })();
   const effectiveId = useMemo(() => {
     if (idParam) return idParam;
@@ -182,34 +183,60 @@ export default function PrepararValija() {
 
   const itemsFor = (catId, base) => {
     const extras = customItems[catId] || [];
-    return [...base, ...extras];
+    // Filtrar items eliminados
+    const filteredBase = base.filter(it => !removedItems.has(it.key));
+    const filteredExtras = extras.filter(it => !removedItems.has(it.key));
+    return [...filteredBase, ...filteredExtras];
   };
 
   const toggleItem = (key) => {
     setChecked(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  //const [removedItems, setRemovedItems] = useState(new Set());
+
   const removeItem = async (catId, item) => {
-    // remove from custom list if custom; otherwise, just mark removal locally
-    setCustomItems(prev => {
-      const list = (prev[catId] || []).filter(x => x.key !== item.key);
-      return { ...prev, [catId]: list };
-    });
+    // Marcar el item como eliminado
+    setRemovedItems(prev => new Set([...prev, item.key]));
+    
+    // Si es un item custom, eliminarlo de la lista
+    if (item.custom) {
+      setCustomItems(prev => {
+        const list = (prev[catId] || []).filter(x => x.key !== item.key);
+        return { ...prev, [catId]: list };
+      });
+    }
+    
+    // Eliminar del estado de checked
     setChecked(prev => {
       const clone = { ...prev };
       delete clone[item.key];
       return clone;
     });
+    
+    // Si es un item guardado en la BD, eliminarlo también de allí
     if (item.id_valija) {
       try {
-        await fetch(`${API_BASE}/api/viajes/valija/${item.id_valija}`, {
+        const deleteResp = await fetch(`${API_BASE}/api/viajes/valija/${item.id_valija}`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           }
         });
-      } catch (_) {}
+        if (deleteResp.ok) {
+          // Actualizar el trip para reflejar el cambio
+          setTrip(prev => {
+            if (!prev || !prev.checklist) return prev;
+            return {
+              ...prev,
+              checklist: prev.checklist.filter(c => c.id_valija !== item.id_valija)
+            };
+          });
+        }
+      } catch (e) {
+        console.error("Error al eliminar item de la BD:", e);
+      }
     }
   };
 
