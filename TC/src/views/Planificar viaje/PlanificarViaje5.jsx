@@ -243,6 +243,7 @@ export default function PlanificarViaje5() {
             rating: currentPlan.hotel_amadeus.rating,
             address: currentPlan.hotel_amadeus.address,
             image_url: currentPlan.hotel_amadeus.image_url,
+            destino_id: currentPlan.hotel_amadeus.destino_id, // Incluir destino_id
             source: 'amadeus'
           };
           // Solo agregar si no existe ya
@@ -453,6 +454,14 @@ export default function PlanificarViaje5() {
       if (isAmadeusHotel && plan.hotel_amadeus) {
         try {
           const hotelAmadeus = plan.hotel_amadeus;
+          
+          // Obtener token al principio del bloque
+          const token = localStorage.getItem("token");
+          const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          };
+          
           // Recargar el plan para asegurar que tenemos el destino_id actualizado
           let currentPlan = plan;
           try {
@@ -471,12 +480,7 @@ export default function PlanificarViaje5() {
           // Si aún no tenemos destino_id y tenemos id_viaje, intentar obtenerlo del viaje
           if (!destinoId && id_viaje) {
             try {
-              const tripRes = await fetch(`${API_BASE}/api/viajes/${id_viaje}`, {
-                headers: {
-                  "Content-Type": "application/json",
-                  ...(token ? { Authorization: `Bearer ${token}` } : {})
-                }
-              });
+              const tripRes = await fetch(`${API_BASE}/api/viajes/${id_viaje}`, { headers });
               if (tripRes.ok) {
                 const tripDetails = await tripRes.json();
                 if (tripDetails?.destino_id) {
@@ -513,19 +517,16 @@ export default function PlanificarViaje5() {
             }
           }
 
-          // Crear el hotel en la BD
-          const token = localStorage.getItem("token");
-          const headers = {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          };
+          // Usar el destino_id del hotel de Amadeus si está disponible
+          const hotelDestinoId = hotelAmadeus.destino_id || destinoId;
+          console.log("📍 destino_id para hotel:", hotelDestinoId, "del hotel:", hotelAmadeus.destino_id, "del plan:", destinoId);
 
           const createHotelResp = await fetch(`${API_BASE}/api/hoteles`, {
             method: "POST",
             headers,
             body: JSON.stringify({
               name: hotelAmadeus.name,
-              destino_id: destinoId || null,
+              destino_id: hotelDestinoId || null,
               destino_nombre: destinoNombre || null,
               destino_pais: destinoPais || null,
               stars: hotelAmadeus.stars || null,

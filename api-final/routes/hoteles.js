@@ -38,15 +38,38 @@ function auth(req, res, next) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (!token) return res.status(401).json({ success: false, message: "No autorizado" });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
-    req.userId = decoded.userId || decoded.id || decoded.id_usuario;
+    // Usar el mismo secret que en auth.js (login)
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret");
+    req.userId = decoded.sub || decoded.userId || decoded.id || decoded.id_usuario;
     next();
   } catch (err) {
+    console.error("❌ Error al verificar token:", err.message);
     return res.status(401).json({ success: false, message: "Token inválido" });
   }
 }
 
 
+
+// Función auxiliar para obtener el destino_id de París o Barcelona
+async function getDestinoIdByCityCode(cityCode) {
+  try {
+    const cityName = cityCode === 'PAR' ? 'Paris' : cityCode === 'BCN' ? 'Barcelona' : null;
+    if (!cityName) return null;
+    
+    const result = await pool.query(
+      `SELECT id FROM destinos WHERE LOWER(nombre) = LOWER($1) LIMIT 1`,
+      [cityName]
+    );
+    
+    if (result.rows.length > 0) {
+      return result.rows[0].id;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error al buscar destino_id:", error.message);
+    return null;
+  }
+}
 
 // GET /api/hoteles?city=paris|barcelona
 router.get("/", async (req, res) => {
@@ -64,6 +87,10 @@ router.get("/", async (req, res) => {
         return res.status(400).json({ message: "City debe ser paris o barcelona" });
       }
       
+      // Obtener el destino_id correcto de la base de datos
+      const destino_id = await getDestinoIdByCityCode(cityCode);
+      console.log(`📍 destino_id para ${cityCode}:`, destino_id);
+      
       // Función para calcular precio estimado basado en estrellas
       const calcularPrecio = (stars, cityCode) => {
         const basePrice = cityCode === 'PAR' ? 80 : 70; // París es más caro
@@ -73,28 +100,28 @@ router.get("/", async (req, res) => {
 
       const ejemploHoteles = {
         'BCN': [
-          { id: 'ej-1', name: 'Hotel Arts Barcelona', cityCode: 'BCN', latitude: 41.3851, longitude: 2.1734, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-1'), address: 'Carrer de la Marina, 19-21, Barcelona' },
-          { id: 'ej-2', name: 'Hotel Casa Fuster', cityCode: 'BCN', latitude: 41.3948, longitude: 2.1564, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-2'), address: 'Passeig de Gràcia, 132, Barcelona' },
-          { id: 'ej-3', name: 'Ibis Barcelona Centro', cityCode: 'BCN', latitude: 41.3809, longitude: 2.1734, stars: 3, price_night_usd: calcularPrecio(3, 'BCN'), rating: 4.2, image_url: getHotelImage('BCN', 'ej-3'), address: 'Carrer de la Marina, 19-21, Barcelona' },
-          { id: 'ej-4', name: 'Hilton Barcelona', cityCode: 'BCN', latitude: 41.3984, longitude: 2.1741, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-4'), address: 'Avinguda Diagonal, 589-591, Barcelona' },
-          { id: 'ej-5', name: 'Hotel Barceló Raval', cityCode: 'BCN', latitude: 41.3793, longitude: 2.1696, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.3, image_url: getHotelImage('BCN', 'ej-5'), address: 'Rambla del Raval, 17-21, Barcelona' },
-          { id: 'ej-6', name: 'Hotel Omm Barcelona', cityCode: 'BCN', latitude: 41.3930, longitude: 2.1588, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.6, image_url: getHotelImage('BCN', 'ej-6'), address: 'Carrer del Rosselló, 265, Barcelona' },
-          { id: 'ej-7', name: 'Hotel Miramar Barcelona', cityCode: 'BCN', latitude: 41.3708, longitude: 2.1566, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-7'), address: 'Placa Carlos Ibáñez, 3, Barcelona' },
-          { id: 'ej-8', name: 'NH Barcelona Eixample', cityCode: 'BCN', latitude: 41.3950, longitude: 2.1635, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.4, image_url: getHotelImage('BCN', 'ej-8'), address: 'Carrer d\'Aragó, 208, Barcelona' },
-          { id: 'ej-9', name: 'Hotel Claris Barcelona', cityCode: 'BCN', latitude: 41.3932, longitude: 2.1617, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-9'), address: 'Carrer de Pau Claris, 150, Barcelona' },
-          { id: 'ej-10', name: 'Hotel Yurbban Trafalgar', cityCode: 'BCN', latitude: 41.3834, longitude: 2.1769, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-10'), address: 'Carrer de Trafalgar, 30, Barcelona' }
+          { id: 'ej-1', name: 'Hotel Arts Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3851, longitude: 2.1734, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-1'), address: 'Carrer de la Marina, 19-21, Barcelona' },
+          { id: 'ej-2', name: 'Hotel Casa Fuster', cityCode: 'BCN', destino_id, latitude: 41.3948, longitude: 2.1564, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-2'), address: 'Passeig de Gràcia, 132, Barcelona' },
+          { id: 'ej-3', name: 'Ibis Barcelona Centro', cityCode: 'BCN', destino_id, latitude: 41.3809, longitude: 2.1734, stars: 3, price_night_usd: calcularPrecio(3, 'BCN'), rating: 4.2, image_url: getHotelImage('BCN', 'ej-3'), address: 'Carrer de la Marina, 19-21, Barcelona' },
+          { id: 'ej-4', name: 'Hilton Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3984, longitude: 2.1741, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-4'), address: 'Avinguda Diagonal, 589-591, Barcelona' },
+          { id: 'ej-5', name: 'Hotel Barceló Raval', cityCode: 'BCN', destino_id, latitude: 41.3793, longitude: 2.1696, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.3, image_url: getHotelImage('BCN', 'ej-5'), address: 'Rambla del Raval, 17-21, Barcelona' },
+          { id: 'ej-6', name: 'Hotel Omm Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3930, longitude: 2.1588, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.6, image_url: getHotelImage('BCN', 'ej-6'), address: 'Carrer del Rosselló, 265, Barcelona' },
+          { id: 'ej-7', name: 'Hotel Miramar Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3708, longitude: 2.1566, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-7'), address: 'Placa Carlos Ibáñez, 3, Barcelona' },
+          { id: 'ej-8', name: 'NH Barcelona Eixample', cityCode: 'BCN', destino_id, latitude: 41.3950, longitude: 2.1635, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.4, image_url: getHotelImage('BCN', 'ej-8'), address: 'Carrer d\'Aragó, 208, Barcelona' },
+          { id: 'ej-9', name: 'Hotel Claris Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3932, longitude: 2.1617, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-9'), address: 'Carrer de Pau Claris, 150, Barcelona' },
+          { id: 'ej-10', name: 'Hotel Yurbban Trafalgar', cityCode: 'BCN', destino_id, latitude: 41.3834, longitude: 2.1769, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-10'), address: 'Carrer de Trafalgar, 30, Barcelona' }
         ],
         'PAR': [
-          { id: 'ej-11', name: 'Hôtel Ritz Paris', cityCode: 'PAR', latitude: 48.8688, longitude: 2.3274, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: getHotelImage('PAR', 'ej-11'), address: '15 Place Vendôme, 75001 Paris' },
-          { id: 'ej-12', name: 'Hôtel Plaza Athénée', cityCode: 'PAR', latitude: 48.8672, longitude: 2.3039, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.8, image_url: getHotelImage('PAR', 'ej-12'), address: '25 Avenue Montaigne, 75008 Paris' },
-          { id: 'ej-13', name: 'Ibis Paris Centre', cityCode: 'PAR', latitude: 48.8566, longitude: 2.3522, stars: 3, price_night_usd: calcularPrecio(3, 'PAR'), rating: 4.1, image_url: getHotelImage('PAR', 'ej-13'), address: '2 Rue Malher, 75004 Paris' },
-          { id: 'ej-14', name: 'Hilton Paris Opera', cityCode: 'PAR', latitude: 48.8738, longitude: 2.3315, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.4, image_url: getHotelImage('PAR', 'ej-14'), address: '108 Rue Saint-Lazare, 75008 Paris' },
-          { id: 'ej-15', name: 'Hôtel Le Meurice', cityCode: 'PAR', latitude: 48.8657, longitude: 2.3294, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: getHotelImage('PAR', 'ej-15'), address: '228 Rue de Rivoli, 75001 Paris' },
-          { id: 'ej-16', name: 'Hôtel des Invalides', cityCode: 'PAR', latitude: 48.8566, longitude: 2.3135, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.3, image_url: getHotelImage('PAR', 'ej-16'), address: '129 Rue de Grenelle, 75007 Paris' },
-          { id: 'ej-17', name: 'Hotel Lutetia', cityCode: 'PAR', latitude: 48.8497, longitude: 2.3283, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.7, image_url: getHotelImage('PAR', 'ej-17'), address: '45 Boulevard Raspail, 75006 Paris' },
-          { id: 'ej-18', name: 'Novotel Paris Les Halles', cityCode: 'PAR', latitude: 48.8625, longitude: 2.3442, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.2, image_url: getHotelImage('PAR', 'ej-18'), address: '8 Place Marguerite de Navarre, 75001 Paris' },
-          { id: 'ej-19', name: 'Hôtel de Crillon', cityCode: 'PAR', latitude: 48.8675, longitude: 2.3206, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: getHotelImage('PAR', 'ej-19'), address: '10 Place de la Concorde, 75008 Paris' },
-          { id: 'ej-20', name: 'Hotel des Grands Boulevards', cityCode: 'PAR', latitude: 48.8708, longitude: 2.3458, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.5, image_url: getHotelImage('PAR', 'ej-20'), address: '17 Boulevard Poissonnière, 75002 Paris' }
+          { id: 'ej-11', name: 'Hôtel Ritz Paris', cityCode: 'PAR', destino_id, latitude: 48.8688, longitude: 2.3274, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: getHotelImage('PAR', 'ej-11'), address: '15 Place Vendôme, 75001 Paris' },
+          { id: 'ej-12', name: 'Hôtel Plaza Athénée', cityCode: 'PAR', destino_id, latitude: 48.8672, longitude: 2.3039, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.8, image_url: getHotelImage('PAR', 'ej-12'), address: '25 Avenue Montaigne, 75008 Paris' },
+          { id: 'ej-13', name: 'Ibis Paris Centre', cityCode: 'PAR', destino_id, latitude: 48.8566, longitude: 2.3522, stars: 3, price_night_usd: calcularPrecio(3, 'PAR'), rating: 4.1, image_url: getHotelImage('PAR', 'ej-13'), address: '2 Rue Malher, 75004 Paris' },
+          { id: 'ej-14', name: 'Hilton Paris Opera', cityCode: 'PAR', destino_id, latitude: 48.8738, longitude: 2.3315, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.4, image_url: getHotelImage('PAR', 'ej-14'), address: '108 Rue Saint-Lazare, 75008 Paris' },
+          { id: 'ej-15', name: 'Hôtel Le Meurice', cityCode: 'PAR', destino_id, latitude: 48.8657, longitude: 2.3294, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: getHotelImage('PAR', 'ej-15'), address: '228 Rue de Rivoli, 75001 Paris' },
+          { id: 'ej-16', name: 'Hôtel des Invalides', cityCode: 'PAR', destino_id, latitude: 48.8566, longitude: 2.3135, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.3, image_url: getHotelImage('PAR', 'ej-16'), address: '129 Rue de Grenelle, 75007 Paris' },
+          { id: 'ej-17', name: 'Hotel Lutetia', cityCode: 'PAR', destino_id, latitude: 48.8497, longitude: 2.3283, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.7, image_url: getHotelImage('PAR', 'ej-17'), address: '45 Boulevard Raspail, 75006 Paris' },
+          { id: 'ej-18', name: 'Novotel Paris Les Halles', cityCode: 'PAR', destino_id, latitude: 48.8625, longitude: 2.3442, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.2, image_url: getHotelImage('PAR', 'ej-18'), address: '8 Place Marguerite de Navarre, 75001 Paris' },
+          { id: 'ej-19', name: 'Hôtel de Crillon', cityCode: 'PAR', destino_id, latitude: 48.8675, longitude: 2.3206, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: getHotelImage('PAR', 'ej-19'), address: '10 Place de la Concorde, 75008 Paris' },
+          { id: 'ej-20', name: 'Hotel des Grands Boulevards', cityCode: 'PAR', destino_id, latitude: 48.8708, longitude: 2.3458, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.5, image_url: getHotelImage('PAR', 'ej-20'), address: '17 Boulevard Poissonnière, 75002 Paris' }
         ]
       };
       
@@ -193,31 +220,35 @@ router.get("/", async (req, res) => {
         return Math.round(basePrice * multiplicador);
       };
 
+      // Obtener el destino_id correcto de la base de datos
+      const destino_id = await getDestinoIdByCityCode(cityCode);
+      console.log(`📍 destino_id para ${cityCode} (fallback):`, destino_id);
+
           // Hoteles de ejemplo para Barcelona y París (10 hoteles cada uno)
           const ejemploHoteles = {
             'BCN': [
-              { id: 'ej-1', name: 'Hotel Arts Barcelona', cityCode: 'BCN', latitude: 41.3851, longitude: 2.1734, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-1'), address: 'Carrer de la Marina, 19-21, Barcelona' },
-              { id: 'ej-2', name: 'Hotel Casa Fuster', cityCode: 'BCN', latitude: 41.3948, longitude: 2.1564, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-2'), address: 'Passeig de Gràcia, 132, Barcelona' },
-              { id: 'ej-3', name: 'Ibis Barcelona Centro', cityCode: 'BCN', latitude: 41.3809, longitude: 2.1734, stars: 3, price_night_usd: calcularPrecio(3, 'BCN'), rating: 4.2, image_url: getHotelImage('BCN', 'ej-3'), address: 'Carrer de la Marina, 19-21, Barcelona' },
-              { id: 'ej-4', name: 'Hilton Barcelona', cityCode: 'BCN', latitude: 41.3984, longitude: 2.1741, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-4'), address: 'Avinguda Diagonal, 589-591, Barcelona' },
-              { id: 'ej-5', name: 'Hotel Barceló Raval', cityCode: 'BCN', latitude: 41.3793, longitude: 2.1696, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.3, image_url: getHotelImage('BCN', 'ej-5'), address: 'Rambla del Raval, 17-21, Barcelona' },
-              { id: 'ej-6', name: 'Hotel Omm Barcelona', cityCode: 'BCN', latitude: 41.3930, longitude: 2.1588, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.6, image_url: getHotelImage('BCN', 'ej-6'), address: 'Carrer del Rosselló, 265, Barcelona' },
-              { id: 'ej-7', name: 'Hotel Miramar Barcelona', cityCode: 'BCN', latitude: 41.3708, longitude: 2.1566, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-7'), address: 'Placa Carlos Ibáñez, 3, Barcelona' },
-              { id: 'ej-8', name: 'NH Barcelona Eixample', cityCode: 'BCN', latitude: 41.3950, longitude: 2.1635, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.4, image_url: getHotelImage('BCN', 'ej-8'), address: 'Carrer d\'Aragó, 208, Barcelona' },
-              { id: 'ej-9', name: 'Hotel Claris Barcelona', cityCode: 'BCN', latitude: 41.3932, longitude: 2.1617, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-9'), address: 'Carrer de Pau Claris, 150, Barcelona' },
-              { id: 'ej-10', name: 'Hotel Yurbban Trafalgar', cityCode: 'BCN', latitude: 41.3834, longitude: 2.1769, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-10'), address: 'Carrer de Trafalgar, 30, Barcelona' }
+              { id: 'ej-1', name: 'Hotel Arts Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3851, longitude: 2.1734, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-1'), address: 'Carrer de la Marina, 19-21, Barcelona' },
+              { id: 'ej-2', name: 'Hotel Casa Fuster', cityCode: 'BCN', destino_id, latitude: 41.3948, longitude: 2.1564, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-2'), address: 'Passeig de Gràcia, 132, Barcelona' },
+              { id: 'ej-3', name: 'Ibis Barcelona Centro', cityCode: 'BCN', destino_id, latitude: 41.3809, longitude: 2.1734, stars: 3, price_night_usd: calcularPrecio(3, 'BCN'), rating: 4.2, image_url: getHotelImage('BCN', 'ej-3'), address: 'Carrer de la Marina, 19-21, Barcelona' },
+              { id: 'ej-4', name: 'Hilton Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3984, longitude: 2.1741, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-4'), address: 'Avinguda Diagonal, 589-591, Barcelona' },
+              { id: 'ej-5', name: 'Hotel Barceló Raval', cityCode: 'BCN', destino_id, latitude: 41.3793, longitude: 2.1696, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.3, image_url: getHotelImage('BCN', 'ej-5'), address: 'Rambla del Raval, 17-21, Barcelona' },
+              { id: 'ej-6', name: 'Hotel Omm Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3930, longitude: 2.1588, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.6, image_url: getHotelImage('BCN', 'ej-6'), address: 'Carrer del Rosselló, 265, Barcelona' },
+              { id: 'ej-7', name: 'Hotel Miramar Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3708, longitude: 2.1566, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.7, image_url: getHotelImage('BCN', 'ej-7'), address: 'Placa Carlos Ibáñez, 3, Barcelona' },
+              { id: 'ej-8', name: 'NH Barcelona Eixample', cityCode: 'BCN', destino_id, latitude: 41.3950, longitude: 2.1635, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.4, image_url: getHotelImage('BCN', 'ej-8'), address: 'Carrer d\'Aragó, 208, Barcelona' },
+              { id: 'ej-9', name: 'Hotel Claris Barcelona', cityCode: 'BCN', destino_id, latitude: 41.3932, longitude: 2.1617, stars: 5, price_night_usd: calcularPrecio(5, 'BCN'), rating: 4.8, image_url: getHotelImage('BCN', 'ej-9'), address: 'Carrer de Pau Claris, 150, Barcelona' },
+              { id: 'ej-10', name: 'Hotel Yurbban Trafalgar', cityCode: 'BCN', destino_id, latitude: 41.3834, longitude: 2.1769, stars: 4, price_night_usd: calcularPrecio(4, 'BCN'), rating: 4.5, image_url: getHotelImage('BCN', 'ej-10'), address: 'Carrer de Trafalgar, 30, Barcelona' }
             ],
         'PAR': [
-          { id: 'ej-11', name: 'Hôtel Ritz Paris', cityCode: 'PAR', latitude: 48.8688, longitude: 2.3274, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: 'https://picsum.photos/400/300?seed=RitzParis', address: '15 Place Vendôme, 75001 Paris' },
-          { id: 'ej-12', name: 'Hôtel Plaza Athénée', cityCode: 'PAR', latitude: 48.8672, longitude: 2.3039, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.8, image_url: 'https://picsum.photos/400/300?seed=PlazaAthenee', address: '25 Avenue Montaigne, 75008 Paris' },
-          { id: 'ej-13', name: 'Ibis Paris Centre', cityCode: 'PAR', latitude: 48.8566, longitude: 2.3522, stars: 3, price_night_usd: calcularPrecio(3, 'PAR'), rating: 4.1, image_url: 'https://picsum.photos/400/300?seed=IbisParis', address: '2 Rue Malher, 75004 Paris' },
-          { id: 'ej-14', name: 'Hilton Paris Opera', cityCode: 'PAR', latitude: 48.8738, longitude: 2.3315, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.4, image_url: 'https://picsum.photos/400/300?seed=HiltonParis', address: '108 Rue Saint-Lazare, 75008 Paris' },
-          { id: 'ej-15', name: 'Hôtel Le Meurice', cityCode: 'PAR', latitude: 48.8657, longitude: 2.3294, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: 'https://picsum.photos/400/300?seed=LeMeurice', address: '228 Rue de Rivoli, 75001 Paris' },
-          { id: 'ej-16', name: 'Hôtel des Invalides', cityCode: 'PAR', latitude: 48.8566, longitude: 2.3135, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.3, image_url: 'https://picsum.photos/400/300?seed=InvalidesParis', address: '129 Rue de Grenelle, 75007 Paris' },
-          { id: 'ej-17', name: 'Hotel Lutetia', cityCode: 'PAR', latitude: 48.8497, longitude: 2.3283, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.7, image_url: 'https://picsum.photos/400/300?seed=LutetiaParis', address: '45 Boulevard Raspail, 75006 Paris' },
-          { id: 'ej-18', name: 'Novotel Paris Les Halles', cityCode: 'PAR', latitude: 48.8625, longitude: 2.3442, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.2, image_url: 'https://picsum.photos/400/300?seed=NovotelParis', address: '8 Place Marguerite de Navarre, 75001 Paris' },
-          { id: 'ej-19', name: 'Hôtel de Crillon', cityCode: 'PAR', latitude: 48.8675, longitude: 2.3206, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: 'https://picsum.photos/400/300?seed=CrillonParis', address: '10 Place de la Concorde, 75008 Paris' },
-          { id: 'ej-20', name: 'Hotel des Grands Boulevards', cityCode: 'PAR', latitude: 48.8708, longitude: 2.3458, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.5, image_url: 'https://picsum.photos/400/300?seed=GrandsBoulevards', address: '17 Boulevard Poissonnière, 75002 Paris' }
+          { id: 'ej-11', name: 'Hôtel Ritz Paris', cityCode: 'PAR', destino_id, latitude: 48.8688, longitude: 2.3274, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: 'https://picsum.photos/400/300?seed=RitzParis', address: '15 Place Vendôme, 75001 Paris' },
+          { id: 'ej-12', name: 'Hôtel Plaza Athénée', cityCode: 'PAR', destino_id, latitude: 48.8672, longitude: 2.3039, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.8, image_url: 'https://picsum.photos/400/300?seed=PlazaAthenee', address: '25 Avenue Montaigne, 75008 Paris' },
+          { id: 'ej-13', name: 'Ibis Paris Centre', cityCode: 'PAR', destino_id, latitude: 48.8566, longitude: 2.3522, stars: 3, price_night_usd: calcularPrecio(3, 'PAR'), rating: 4.1, image_url: 'https://picsum.photos/400/300?seed=IbisParis', address: '2 Rue Malher, 75004 Paris' },
+          { id: 'ej-14', name: 'Hilton Paris Opera', cityCode: 'PAR', destino_id, latitude: 48.8738, longitude: 2.3315, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.4, image_url: 'https://picsum.photos/400/300?seed=HiltonParis', address: '108 Rue Saint-Lazare, 75008 Paris' },
+          { id: 'ej-15', name: 'Hôtel Le Meurice', cityCode: 'PAR', destino_id, latitude: 48.8657, longitude: 2.3294, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: 'https://picsum.photos/400/300?seed=LeMeurice', address: '228 Rue de Rivoli, 75001 Paris' },
+          { id: 'ej-16', name: 'Hôtel des Invalides', cityCode: 'PAR', destino_id, latitude: 48.8566, longitude: 2.3135, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.3, image_url: 'https://picsum.photos/400/300?seed=InvalidesParis', address: '129 Rue de Grenelle, 75007 Paris' },
+          { id: 'ej-17', name: 'Hotel Lutetia', cityCode: 'PAR', destino_id, latitude: 48.8497, longitude: 2.3283, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.7, image_url: 'https://picsum.photos/400/300?seed=LutetiaParis', address: '45 Boulevard Raspail, 75006 Paris' },
+          { id: 'ej-18', name: 'Novotel Paris Les Halles', cityCode: 'PAR', destino_id, latitude: 48.8625, longitude: 2.3442, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.2, image_url: 'https://picsum.photos/400/300?seed=NovotelParis', address: '8 Place Marguerite de Navarre, 75001 Paris' },
+          { id: 'ej-19', name: 'Hôtel de Crillon', cityCode: 'PAR', destino_id, latitude: 48.8675, longitude: 2.3206, stars: 5, price_night_usd: calcularPrecio(5, 'PAR'), rating: 4.9, image_url: 'https://picsum.photos/400/300?seed=CrillonParis', address: '10 Place de la Concorde, 75008 Paris' },
+          { id: 'ej-20', name: 'Hotel des Grands Boulevards', cityCode: 'PAR', destino_id, latitude: 48.8708, longitude: 2.3458, stars: 4, price_night_usd: calcularPrecio(4, 'PAR'), rating: 4.5, image_url: 'https://picsum.photos/400/300?seed=GrandsBoulevards', address: '17 Boulevard Poissonnière, 75002 Paris' }
         ]
       };
       
@@ -240,7 +271,7 @@ router.post("/", auth, async (req, res) => {
   try {
     const {
       name,
-      destino_id,
+      destino_id: destino_id_param,
       stars,
       rating,
       price_night_usd,
@@ -249,24 +280,22 @@ router.post("/", auth, async (req, res) => {
       link_url,
     } = req.body;
 
-    if (!name || !destino_id) {
+    // Variable mutable para el destino_id final
+    let destino_id = destino_id_param;
+
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: "name y destino_id son requeridos",
+        message: "name es requerido",
       });
     }
 
-    // Verificar que el destino existe
-    let checkDestino = await pool.query(
-      `SELECT id FROM destinos WHERE id = $1`,
-      [destino_id]
-    );
-
-    // Si no existe por ID, intentar buscar por nombre/pais si vienen en el body
-    if (checkDestino.rowCount === 0 && req.body.destino_nombre) {
+    // Si no viene destino_id, intentar obtenerlo por nombre
+    if (!destino_id && req.body.destino_nombre) {
       const destinoNombre = req.body.destino_nombre;
       const destinoPais = req.body.destino_pais || null;
       
+      let checkDestino;
       if (destinoPais) {
         checkDestino = await pool.query(
           `SELECT id FROM destinos WHERE LOWER(nombre) = LOWER($1) AND LOWER(pais) = LOWER($2) LIMIT 1`,
@@ -279,19 +308,35 @@ router.post("/", auth, async (req, res) => {
         );
       }
       
-      // Si encontramos el destino, usar ese ID
       if (checkDestino.rowCount > 0) {
         destino_id = checkDestino.rows[0].id;
+        console.log(`📍 Destino resuelto por nombre: ${destinoNombre} -> ${destino_id}`);
       }
     }
+
+    // Ahora verificar que tengamos destino_id
+    if (!destino_id) {
+      return res.status(400).json({
+        success: false,
+        message: "destino_id es requerido o debe proporcionarse destino_nombre para resolverlo",
+      });
+    }
+
+    // Verificar que el destino existe
+    const checkDestino = await pool.query(
+      `SELECT id FROM destinos WHERE id = $1`,
+      [destino_id]
+    );
 
     if (checkDestino.rowCount === 0) {
       return res.status(404).json({
         success: false,
         message: "Destino no encontrado. Asegúrate de que el destino existe en la base de datos.",
-        hint: "El destino_id proporcionado no existe. Puede que necesites crear el viaje primero para que el destino sea resuelto."
+        hint: `El destino_id proporcionado (${destino_id}) no existe.`
       });
     }
+
+    console.log(`✅ Creando hotel: ${name} para destino: ${destino_id}`);
 
     // Insertar el hotel
     const result = await pool.query(
@@ -325,3 +370,4 @@ router.post("/", auth, async (req, res) => {
 });
 
 module.exports = router;
+

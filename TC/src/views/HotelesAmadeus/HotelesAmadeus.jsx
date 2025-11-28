@@ -75,7 +75,7 @@ export default function HotelesAmadeus() {
       const planData = localStorage.getItem("planificarViaje");
       if (planData) {
         const plan = JSON.parse(planData);
-        // Agregar el hotel de Amadeus como seleccionado
+        // Agregar el hotel de Amadeus como seleccionado (incluido el destino_id)
         plan.hotel_amadeus = {
           id: hotel.id,
           name: hotel.name,
@@ -84,9 +84,11 @@ export default function HotelesAmadeus() {
           rating: hotel.rating,
           address: hotel.address,
           image_url: hotel.image_url,
+          destino_id: hotel.destino_id, // Importante: guardar el destino_id del hotel
           source: 'amadeus'
         };
         localStorage.setItem("planificarViaje", JSON.stringify(plan));
+        console.log("📍 Hotel guardado con destino_id:", hotel.destino_id);
         
         // Mostrar mensaje de éxito
         alert(`Hotel "${hotel.name}" seleccionado. Volviendo al planificador...`);
