@@ -16,6 +16,7 @@ app.use("/api/viajes", require("./routes/viajes"));
 app.use("/api/me", require("./routes/me"));
 app.use("/api/seguros", require("./routes/seguros"));
 app.use("/api/hoteles", hotelesRouter);
+app.use("/api/ofertas", require("./routes/ofertas"));   // Ofertas
 
 
 // Rutas GEO (módulo GeoDB)

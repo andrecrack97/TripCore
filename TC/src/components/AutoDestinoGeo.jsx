@@ -34,7 +34,10 @@ function AutoDestinoGeo({
 
   useEffect(() => {
     const onClick = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      // Usar setTimeout para dar tiempo al click del item de ejecutarse primero
+      setTimeout(() => {
+        if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      }, 0);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
